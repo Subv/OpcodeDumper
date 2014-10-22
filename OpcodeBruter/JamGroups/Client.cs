@@ -36,7 +36,10 @@ namespace OpcodeBruter.JamGroups
 
         public override uint CalculateHandler(uint opcode)
         {
-            return Offsets[CalculateOffset(opcode)];
+            var index = CalculateOffset(opcode);
+            if (index >= JumpTableSize)
+                return Offsets[898]; // Default case
+            return Offsets[index];
         }
 
         public override int CalculateOffset(uint opcode)

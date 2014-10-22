@@ -58,7 +58,6 @@ namespace OpcodeBruter
                 uint address = dispatcher.CalculateHandler(i);
                 Console.WriteLine("Opcode {0} (0x{0:X}) from group {3} with switch value {1} has its handler at {2} (Hex: 0x{2:X})", i, offset, address, group.ToString());
             }
-            
         }
     }
 }

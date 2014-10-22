@@ -36,7 +36,7 @@ namespace OpcodeBruter
                     IndirectJumpTable.Add(indirectData[i]);
             }
 
-            for (int i = 0; i < JumpTableSize; i += 4)
+            for (int i = 0; i < JumpTableSize * 4; i += 4)
                 Offsets.Add(BitConverter.ToUInt32(data, i));
         }
     }

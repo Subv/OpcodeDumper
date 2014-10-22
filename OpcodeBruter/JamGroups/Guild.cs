@@ -16,12 +16,12 @@ namespace OpcodeBruter.JamGroups
 
         public override int JumpTableSize
         {
-            get { return 100; }
+            get { return 64; }
         }
 
         public override int IndirectJumpTableAddress
         {
-            get { return 0x5F0C35; }
+            get { return 0x5F0C35 - 0x400000 - 0xC00; }
         }
 
         public override int IndirectJumpTableSize
@@ -35,7 +35,8 @@ namespace OpcodeBruter.JamGroups
         }
         public override uint CalculateHandler(uint opcode)
         {
-            return Offsets[CalculateOffset(opcode)];
+            var index = CalculateOffset(opcode);
+            return Offsets[index];
         }
 
         public override int CalculateOffset(uint opcode)
@@ -61,6 +62,9 @@ namespace OpcodeBruter.JamGroups
 
             edx &= 1;
             eax |= edx;
+
+            if (eax >= IndirectJumpTableSize)
+                return 3; // Default case
 
             eax = (int)IndirectJumpTable[eax];
             

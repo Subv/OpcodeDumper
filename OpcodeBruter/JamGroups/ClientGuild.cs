@@ -7,7 +7,7 @@ using System.IO;
 
 namespace OpcodeBruter.JamGroups
 {
-    public class Guild : JamDispatch
+    public class ClientGuild : JamDispatch
     {
         public override int JumpTableAddress
         {
@@ -29,7 +29,12 @@ namespace OpcodeBruter.JamGroups
             get { return 100; }
         }
 
-        public Guild(FileStream wow) : base(wow)
+        public static bool Check(uint opcode)
+        {
+            return ((opcode - 1) & 0xA8E) == 520;
+        }
+
+        public ClientGuild(FileStream wow) : base(wow)
         {
 
         }

@@ -22,22 +22,25 @@ namespace OpcodeBruter
 
         public JamDispatch(FileStream wow)
         {
-            byte[] data = new byte[JumpTableSize * 4];
-            wow.Seek(JumpTableAddress, SeekOrigin.Begin);
-            wow.Read(data, 0, JumpTableSize * 4);
-
-            if (IndirectJumpTableSize != 0)
+            if (JumpTableSize > 0)
             {
-                byte[] indirectData = new byte[IndirectJumpTableSize];
-                wow.Seek(IndirectJumpTableAddress, SeekOrigin.Begin);
-                wow.Read(indirectData, 0, IndirectJumpTableSize);
+                byte[] data = new byte[JumpTableSize * 4];
+                wow.Seek(JumpTableAddress, SeekOrigin.Begin);
+                wow.Read(data, 0, JumpTableSize * 4);
 
-                for (int i = 0; i < IndirectJumpTableSize; ++i)
-                    IndirectJumpTable.Add(indirectData[i]);
+                if (IndirectJumpTableSize != 0)
+                {
+                    byte[] indirectData = new byte[IndirectJumpTableSize];
+                    wow.Seek(IndirectJumpTableAddress, SeekOrigin.Begin);
+                    wow.Read(indirectData, 0, IndirectJumpTableSize);
+
+                    for (int i = 0; i < IndirectJumpTableSize; ++i)
+                        IndirectJumpTable.Add(indirectData[i]);
+                }
+
+                for (int i = 0; i < JumpTableSize * 4; i += 4)
+                    Offsets.Add(BitConverter.ToUInt32(data, i));
             }
-
-            for (int i = 0; i < JumpTableSize * 4; i += 4)
-                Offsets.Add(BitConverter.ToUInt32(data, i));
         }
     }
 }

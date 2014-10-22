@@ -44,7 +44,11 @@
     <Compile Include="JamDispatch.cs" />
     <Compile Include="JamGroups.cs" />
     <Compile Include="JamGroups\Client.cs" />
-    <Compile Include="JamGroups\Guild.cs" />
+    <Compile Include="JamGroups\ClientChat.cs" />
+    <Compile Include="JamGroups\ClientMovement.cs" />
+    <Compile Include="JamGroups\ClientGarrison.cs" />
+    <Compile Include="JamGroups\ClientGuild.cs" />
+    <Compile Include="JamGroups\ClientLFG.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -10,8 +10,13 @@ namespace OpcodeBruter
     {
         None,
         Client,
-        Chat,
-        Guild,
-        Movement
+        ClientChat,
+        ClientGuild,
+        ClientMovement,
+        ClientGarrison,
+        ClientLFG,
+        ClientSpell,
+        ClientSocial,
+        ClientQuest
     }
 }

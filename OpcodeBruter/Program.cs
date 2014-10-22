@@ -15,16 +15,27 @@ namespace OpcodeBruter
         {
             Dispatchers[JamGroup.None] = null;
             Dispatchers[JamGroup.Client] = new JamGroups.Client(wow);
-            Dispatchers[JamGroup.Guild] = new JamGroups.Guild(wow);
+            Dispatchers[JamGroup.ClientGuild] = new JamGroups.ClientGuild(wow);
+            Dispatchers[JamGroup.ClientGarrison] = new JamGroups.ClientGarrison(wow);
+            Dispatchers[JamGroup.ClientLFG] = new JamGroups.ClientLFG(wow);
+            Dispatchers[JamGroup.ClientChat] = new JamGroups.ClientChat(wow);
+            Dispatchers[JamGroup.ClientMovement] = new JamGroups.ClientMovement(wow);
         }
 
         public static JamGroup GetJAMGroup(uint opcode)
         {
-            if (((opcode - 1) & 0x88A) == 2 || ((opcode - 1) & 0x4A2) == 162)
+            if (JamGroups.Client.Check(opcode))
                 return JamGroup.Client;
-            else if (((opcode - 1) & 0xA8E) == 520)
-                return JamGroup.Guild;
-
+            else if (JamGroups.ClientGuild.Check(opcode))
+                return JamGroup.ClientGuild;
+            else if (JamGroups.ClientGarrison.Check(opcode))
+                return JamGroup.ClientGarrison;
+            else if (JamGroups.ClientLFG.Check(opcode))
+                return JamGroup.ClientLFG;
+            else if (JamGroups.ClientChat.Check(opcode))
+                return JamGroup.ClientChat;
+            else if (JamGroups.ClientMovement.Check(opcode))
+                return JamGroup.ClientMovement;
             return JamGroup.None;
         }
 

@@ -29,6 +29,11 @@ namespace OpcodeBruter.JamGroups
             get { return 0; }
         }
 
+        public static bool Check(uint opcode)
+        {
+            return ((opcode - 1) & 0x88A) == 2 || ((opcode - 1) & 0x4A2) == 162;
+        }
+
         public Client(FileStream wow) : base(wow)
         {
             

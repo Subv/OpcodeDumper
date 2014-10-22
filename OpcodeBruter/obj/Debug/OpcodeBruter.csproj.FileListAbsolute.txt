@@ -1,6 +1,0 @@
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\bin\Debug\OpcodeBruter.exe.config
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\bin\Debug\OpcodeBruter.exe
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\bin\Debug\OpcodeBruter.pdb
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\obj\Debug\OpcodeBruter.csprojResolveAssemblyReference.cache
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\obj\Debug\OpcodeBruter.exe
-e:\users\sebastian\documents\visual studio 2013\Projects\OpcodeBruter\OpcodeBruter\obj\Debug\OpcodeBruter.pdb

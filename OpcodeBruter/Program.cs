@@ -20,6 +20,9 @@ namespace OpcodeBruter
             Dispatchers[JamGroup.ClientLFG] = new JamGroups.ClientLFG(wow);
             Dispatchers[JamGroup.ClientChat] = new JamGroups.ClientChat(wow);
             Dispatchers[JamGroup.ClientMovement] = new JamGroups.ClientMovement(wow);
+            Dispatchers[JamGroup.ClientSocial] = new JamGroups.ClientSocial(wow);
+            Dispatchers[JamGroup.ClientSpell] = new JamGroups.ClientSpell(wow);
+            Dispatchers[JamGroup.ClientQuest] = new JamGroups.ClientQuest(wow);
         }
 
         public static JamGroup GetJAMGroup(uint opcode)
@@ -36,6 +39,12 @@ namespace OpcodeBruter
                 return JamGroup.ClientChat;
             else if (JamGroups.ClientMovement.Check(opcode))
                 return JamGroup.ClientMovement;
+            else if (JamGroups.ClientSocial.Check(opcode))
+                return JamGroup.ClientSocial;
+            else if (JamGroups.ClientSpell.Check(opcode))
+                return JamGroup.ClientSpell;
+            else if (JamGroups.ClientQuest.Check(opcode))
+                return JamGroup.ClientQuest;
             return JamGroup.None;
         }
 

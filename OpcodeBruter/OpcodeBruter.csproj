@@ -45,6 +45,9 @@
     <Compile Include="JamGroups.cs" />
     <Compile Include="JamGroups\Client.cs" />
     <Compile Include="JamGroups\ClientChat.cs" />
+    <Compile Include="JamGroups\ClientSocial.cs" />
+    <Compile Include="JamGroups\ClientSpell.cs" />
+    <Compile Include="JamGroups\ClientQuest.cs" />
     <Compile Include="JamGroups\ClientMovement.cs" />
     <Compile Include="JamGroups\ClientGarrison.cs" />
     <Compile Include="JamGroups\ClientGuild.cs" />

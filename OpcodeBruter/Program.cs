@@ -9,6 +9,8 @@ namespace OpcodeBruter
 {
     class Program
     {
+        public static bool Debug = false;
+        
         public static Dictionary<JamGroup, JamDispatch> Dispatchers = new Dictionary<JamGroup, JamDispatch>();
 
         public static void InitializeDictionary(FileStream wow)
@@ -56,28 +58,61 @@ namespace OpcodeBruter
         static void Main(string[] args)
         {
             // Open the file
-            FileStream wow = File.OpenRead(args[0]);
+            var filePath = AppDomain.CurrentDomain.BaseDirectory + "./Wow.exe";
+            if (args.Length == 1)
+                filePath = args[0];
+            FileStream wow = File.OpenRead(filePath);
             if (!wow.CanRead)
                 return;
 
             InitializeDictionary(wow);
 
-            for (uint i = 0; i < 0x1FFF; ++i)
+            Console.WriteLine("+---------------+-------------+-------------+-------------+--------------------+");
+            Console.WriteLine("|     Opcode    | Case offset |  JAM Parser | Jam Handler |     Group Name     |");
+            Console.WriteLine("+---------------+-------------+-------------+-------------+--------------------+");
+            
+            var opcodesCount = 0;
+            for (uint opcode = 0; opcode < 0x1FFF; ++opcode)
             {
-                JamGroup group = GetJAMGroup(i);
-                JamDispatch dispatcher = GetJAMDispatcher(group);
+                var jamGroup = GetJAMGroup(opcode);
+                JamDispatch dispatcher = GetJAMDispatcher(jamGroup);
 
                 if (dispatcher == null)
                     continue;
 
-                int offset = dispatcher.CalculateOffset(i);
-                
+                int offset = dispatcher.CalculateOffset(opcode);
                 if (offset < 0)
                     continue;
 
-                uint address = dispatcher.CalculateHandler(i);
-                Console.WriteLine("Opcode {0} (0x{0:X}) from group {3} with switch value {1} has its handler at {2} (Hex: 0x{2:X})", i, offset, address, group.ToString());
+                uint address = dispatcher.CalculateHandler(opcode);
+
+                var jamData = new uint[2];
+                switch (jamGroup)
+                {
+                    case JamGroup.Client:
+                    case JamGroup.ClientGuild:
+                        jamData = dispatcher.CalculateJamFunctionOffsets(address);
+                        break;
+                    case JamGroup.ClientSpell:
+                        jamData = dispatcher.CalculateJamFunctionOffsets(opcode);
+                        break;
+                }
+                // This can only happen if either disassembly failed,
+                // or no CALL opcodes were found.                
+                // if (jamData[0] == 0 || jamData[1] == 0)
+                //     continue;
+                
+                ++opcodesCount;
+                
+                Console.WriteLine("| {5} (0x{0:X4}) |  0x{1:X8} |  0x{2:X8} |  0x{3:X8} | {4} |",
+                                  opcode,
+                                  address,
+                                  jamData[0], jamData[1],
+                                  jamGroup.ToString().PadLeft(18),
+                                  opcode.ToString().PadLeft(4));
             }
+            Console.WriteLine("+---------------+-------------+-------------+-------------+--------------------+");
+            Console.WriteLine(@"Dumper {0} JAM opcodes.", opcodesCount);
         }
     }
 }

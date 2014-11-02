@@ -12,7 +12,7 @@ namespace OpcodeBruter
     {
         protected FileStream wow;
         protected UnmanagedBuffer wowDisasm;
-        
+
         public List<uint> Offsets = new List<uint>();
         public List<uint> IndirectJumpTable = new List<uint>();
 
@@ -20,7 +20,7 @@ namespace OpcodeBruter
         /// Address of the jump table for that group.
         /// </summary>
         public abstract int JumpTableAddress { get; }
-        
+
         /// <summary>
         /// Size of the jump table for that group.
         /// </summary>
@@ -30,7 +30,7 @@ namespace OpcodeBruter
         /// Address of the indirect jump table for that group.
         /// </summary>
         public abstract int IndirectJumpTableAddress { get; }
-        
+
         /// <summary>
         /// Size of the indirect jump table for that group.
         /// </summary>
@@ -38,7 +38,7 @@ namespace OpcodeBruter
 
         public abstract int CalculateOffset(uint opcode);
         public abstract uint CalculateHandler(uint opcode);
-        
+
         /// <summary>
         /// Calculates the IDA address of the JAM handler, and parser, of a given opcode
         /// </summary>

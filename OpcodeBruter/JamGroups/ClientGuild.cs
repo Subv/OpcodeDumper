@@ -90,10 +90,11 @@ namespace OpcodeBruter.JamGroups
             // or disassemble more than 32 bytes (size of the case in jump table)
             while (callCount < 2 && disasmCount < 32)
             {
-                ++disasmCount;
                 int result = BeaEngine.Disasm(disasm);
                 if (result == (int)BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
                     return new uint[2];
+                
+                disasmCount += result;
 
                 if (Program.Debug)
                     Console.WriteLine("0x{0:X8} {1}", (disasm.EIP.ToInt64() - wowDisasm.Ptr.ToInt64() + 0x400C00), disasm.CompleteInstr);

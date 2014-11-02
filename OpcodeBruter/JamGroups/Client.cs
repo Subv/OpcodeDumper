@@ -12,7 +12,7 @@ namespace OpcodeBruter.JamGroups
     {
         public override int JumpTableAddress
         {
-            get { return 0x5DCFD0 - 0x400000 - 0xC00; }
+            get { return 0x5DCFD0 - 0x400C00; }
         }
 
         public override int JumpTableSize
@@ -70,10 +70,11 @@ namespace OpcodeBruter.JamGroups
             // or disassemble more than 32 bytes (size of the case in jump table)
             while (callCount < 2 && disasmCount < 32)
             {
-                ++disasmCount;
                 int result = BeaEngine.Disasm(disasm);
                 if (result == (int)BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
                     return new uint[2];
+                
+                disasmCount += result;
 
                 if (Program.Debug)
                     Console.WriteLine("0x{0:X8} {1}", (disasm.EIP.ToInt64() - wowDisasm.Ptr.ToInt64() + 0x400C00), disasm.CompleteInstr);

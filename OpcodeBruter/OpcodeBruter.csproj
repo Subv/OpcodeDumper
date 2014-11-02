@@ -11,6 +11,16 @@
     <AssemblyName>OpcodeBruter</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <NoWin32Manifest>False</NoWin32Manifest>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoStdLib>False</NoStdLib>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <SourceAnalysisOverrideSettingsFile>C:\Users\perquet\AppData\Roaming\ICSharpCode/SharpDevelop4\Settings.SourceAnalysis</SourceAnalysisOverrideSettingsFile>
+    <SignAssembly>False</SignAssembly>
+    <DelaySign>False</DelaySign>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <RunCodeAnalysis>False</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -24,12 +34,27 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
+    <DebugType>None</DebugType>
+    <Optimize>True</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <StartAction>Project</StartAction>
+    <StartArguments>-e Wow.exe -s</StartArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+    <StartAction>Project</StartAction>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
+    <BaseAddress>4194304</BaseAddress>
+    <Prefer32Bit>True</Prefer32Bit>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Bea">
@@ -44,6 +69,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cmsg\CliOpcodes.cs" />
     <Compile Include="JamDispatch.cs" />
     <Compile Include="JamGroups.cs" />
     <Compile Include="JamGroups\Client.cs" />
@@ -56,6 +82,7 @@
     <Compile Include="JamGroups\ClientGuild.cs" />
     <Compile Include="JamGroups\ClientLFG.cs" />
     <Compile Include="Minidump.cs" />
+    <Compile Include="Opcodes.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnmanagedBuffer.cs" />
@@ -63,6 +90,22 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Cmsg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ProfilingSessions\Session20141102_164322.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_164410.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_165005.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_170322.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_171008.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_171159.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_171714.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_171733.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_171743.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_172143.sdps" />
+    <Content Include="ProfilingSessions\Session20141102_172638.sdps" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -8,7 +8,7 @@ namespace OpcodeBruter
 {
     public enum JamGroup
     {
-        None,
+        None = 0,
         Client,
         ClientChat,
         ClientGuild,

@@ -10,66 +10,48 @@ namespace OpcodeBruter
 {
     public abstract class JamDispatch
     {
-        protected FileStream wow;
-        protected UnmanagedBuffer wowDisasm;
+        public FileStream wowStream;
+        public UnmanagedBuffer Disasm;
 
         public List<uint> Offsets = new List<uint>();
         public List<uint> IndirectJumpTable = new List<uint>();
 
-        /// <summary>
-        /// Address of the jump table for that group.
-        /// </summary>
-        public abstract int JumpTableAddress { get; }
+        public virtual int StructureOffset { get { return 0; } }
+        public virtual int PaddingSize { get { return 8; } }
+        public int CalculateDispatcherFn() { return _dispatcher; }
+        public int CalculateCheckerFn()    { return _checker; }
+        public int CalculateConnectionFn() { return _connIndex; }
 
-        /// <summary>
-        /// Size of the jump table for that group.
-        /// </summary>
-        public abstract int JumpTableSize { get; }
-
-        /// <summary>
-        /// Address of the indirect jump table for that group.
-        /// </summary>
-        public abstract int IndirectJumpTableAddress { get; }
-
-        /// <summary>
-        /// Size of the indirect jump table for that group.
-        /// </summary>
-        public abstract int IndirectJumpTableSize { get; }
-
-        public abstract int CalculateOffset(uint opcode);
-        public abstract uint CalculateHandler(uint opcode);
-
-        /// <summary>
-        /// Calculates the IDA address of the JAM handler, and parser, of a given opcode
-        /// </summary>
-        public virtual uint[] CalculateJamFunctionOffsets(uint addressOrOpcode)
-        {
-            return new uint[2];
-        }
-
+        private int _dispatcher;
+        private int _checker;
+        private int _connIndex;
+        private JamGroup _groupName;
+        
+        public JamGroup GetGroup() { return _groupName; }
+        
         public JamDispatch(FileStream wow)
         {
-            this.wow = wow;
-            wowDisasm = UnmanagedBuffer.CreateFromFile(wow);
-            if (JumpTableSize > 0)
-            {
-                byte[] data = new byte[JumpTableSize * 4];
-                wow.Seek(JumpTableAddress, SeekOrigin.Begin);
-                wow.Read(data, 0, JumpTableSize * 4);
-
-                if (IndirectJumpTableSize != 0)
-                {
-                    byte[] indirectData = new byte[IndirectJumpTableSize];
-                    wow.Seek(IndirectJumpTableAddress, SeekOrigin.Begin);
-                    wow.Read(indirectData, 0, IndirectJumpTableSize);
-
-                    for (int i = 0; i < IndirectJumpTableSize; ++i)
-                        IndirectJumpTable.Add(indirectData[i]);
-                }
-
-                for (int i = 0; i < JumpTableSize * 4; i += 4)
-                    Offsets.Add(BitConverter.ToUInt32(data, i));
-            }
+            this.wowStream = wow;
+            Disasm = UnmanagedBuffer.CreateFromFile(wow);
+            var binary = new BinaryReader(wow);
+            binary.BaseStream.Seek(StructureOffset - 0x401400, SeekOrigin.Begin);
+            
+            var nameOffset = binary.ReadInt32() - 0x400C00;
+            
+            // + 3 skips prologue, + 3 mov reg, dword ptr [...] (we manually insert the opcode)
+            _checker = binary.ReadInt32() - 0x400C00;
+            binary.ReadBytes(PaddingSize);
+            _connIndex = binary.ReadInt32(); // This @Shauren?
+            if (_connIndex > 0)
+                _connIndex -= 0x400C00;
+            _dispatcher = binary.ReadInt32() - 0x400C00;
+            
+            binary.BaseStream.Seek(nameOffset, SeekOrigin.Begin);
+            var groupName = String.Empty;
+            while (binary.PeekChar() != '\0')
+                groupName += binary.ReadChar();
+            if (!Enum.TryParse(groupName, out _groupName))
+                Console.WriteLine("Found JAM Group {0}, which is not defined in the JamGroup enum!", groupName);
         }
     }
 }

@@ -81,7 +81,7 @@ namespace OpcodeBruter.Cmsg
                 subCall = subCall + (uint)callOffset;
                 subCall += 5;
                 
-                if (subCall != 0x40FCE1)
+                if (subCall != 0x40FCE6) // CDataStore::PutInt32
                     continue;
 
                 var opcodeValue = BitConverter.ToUInt16(bytes, 10);
@@ -123,7 +123,16 @@ namespace OpcodeBruter.Cmsg
                                   Opcodes.GetOpcodeNameForClient(record.OpcodeValue));
             Console.WriteLine("+---------------+------------+------------+");
             Console.WriteLine("Dumped {0} CMSG JAM opcodes.", opcodeDict.Count);
-            Console.ReadKey();
+
+            // Integrity check
+            var foundOpcs = 0;
+            foreach (var record in opcodeDict)
+                if (Opcodes.GetOpcodeNameForClient(record.OpcodeValue) != string.Empty)
+                    ++foundOpcs;
+            if (foundOpcs != Opcodes.CMSG.Count)
+                Console.WriteLine("Found {0} WPP CMSGs opcodes over {1}.", foundOpcs, Opcodes.CMSG.Count);
+            else
+                Console.WriteLine("All CMSGs defined in WPP have been found.");
         }
     }
     

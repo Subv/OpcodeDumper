@@ -21,16 +21,27 @@ namespace OpcodeBruter
             return new UnmanagedBuffer(ReadBytes(0, Length));
         }
         
-        public byte ReadByte(int offset)
+        public byte ReadByte(uint offset)
         {
-            return Marshal.ReadByte(Ptr, offset - 0x400C00);
+            return Marshal.ReadByte(Ptr, (int)offset);
         }
         
-        public byte[] ReadBytes(int offset, int count)
+        public short ReadWord(uint offset)
+        {
+            return Marshal.ReadInt16(Ptr, (int)offset);
+        }
+        
+        public unsafe byte[] ReadBytes(uint offset, int count)
         {
             byte[] managedArray = new byte[count];
-            Marshal.Copy(Ptr, managedArray, offset - 0x400C00, count);
+            for (var i = 0; i < count; ++i)
+                managedArray[i] = *(byte*)(Ptr + i);
             return managedArray;
+        }
+        
+        public uint ReadDword(uint offset)
+        {
+            return (uint)Marshal.ReadInt32(Ptr, (int)offset);
         }
         
         public void ReplaceByte(int offset, byte value)

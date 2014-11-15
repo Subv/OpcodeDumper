@@ -15,15 +15,16 @@ namespace OpcodeBruter
     {
         public static Regex OpcodeRgx = new Regex(@"Opcode\.(.+), 0x([A-Z0-9]+)(?: | 0x[0-9A-Z]+)?", RegexOptions.IgnoreCase);
 
+        private static string FilePath = @"https://raw.githubusercontent.com/TrinityCore/WowPacketParser/master/WowPacketParser/Enums/Version/V6_0_3_19103/Opcodes.cs";
         public static bool TryPopulate(bool smsg = true)
         {
-            //if ((smsg ? SMSG : CMSG).Count != 0)
+            if (Program.Debug || (smsg ? SMSG : CMSG).Count != 0)
                 return true;
 
             try
             {
                 WebClient client = new WebClient();
-                Stream stream = client.OpenRead("https://raw.githubusercontent.com/TrinityCore/WowPacketParser/master/WowPacketParser/Enums/Version/V6_0_2_19033/Opcodes.cs");
+                Stream stream = client.OpenRead(FilePath);
                 StreamReader reader = new StreamReader(stream);
                 var content = reader.ReadToEnd().Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
                 stream.Close();
@@ -41,7 +42,7 @@ namespace OpcodeBruter
                         SMSG.Add(opcodeName, opcodeValue);
                 }
             }
-            catch (WebException)
+            catch (WebException /*whatever*/) // Haha so funny I is.
             {
                 Console.WriteLine("Unable to query opcodes. Try again.");
                 return false;

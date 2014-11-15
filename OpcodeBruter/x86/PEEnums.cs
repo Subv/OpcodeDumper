@@ -1,0 +1,89 @@
+﻿using System;
+
+namespace x86
+{
+    public enum IMAGE_FILE_HEADER_MACHINE_TYPES : ushort
+    {
+        IMAGE_FILE_MACHINE_I386  = 0x014C,
+        IMAGE_FILE_MACHINE_IA64  = 0x0200,
+        IMAGE_FILE_MACHINE_AMD64 = 0x8664
+    }
+    
+    [Flags()]
+    public enum IMAGE_FILE_HEADER_CHARACTERISTICS : ushort
+    {
+        IMAGE_FILE_RELOCS_STRIPPED = 0x0001,
+        IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002,
+        IMAGE_FILE_LINE_NUMS_STRIPPED = 0x0004,
+        IMAGE_FILE_LOCAL_SYMS_STRIPPED = 0x0008,
+        IMAGE_FILE_AGGRESIVE_WS_TRIM = 0x0010,
+        IMAGE_FILE_LARGE_ADDRESS_AWARE = 0x0020,
+        IMAGE_FILE_BYTES_REVERSED_LO = 0x0080,
+        IMAGE_FILE_32BIT_MACHINE = 0x100,
+        IMAGE_FILE_DEBUG_STRIPPED = 0x200,
+        IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP = 0x400,
+        IMAGE_FILE_NET_RUN_FROM_SWAP = 0x800,
+        IMAGE_FILE_SYSTEM = 0x1000,
+        IMAGE_FILE_DLL = 0x2000,
+        IMAGE_FILE_UP_SYSTEM_ONLY = 0x4000,
+        IMAGE_FILE_BYTES_REVERSED_HI = 0x8000, // Obsolete
+    }
+    
+    public enum IMAGE_OPTIONAL_HEADER_MAGIC : ushort
+    {
+        IMAGE_NT_OPTIONAL_HDR32_MAGIC = 0x10B,
+        IMAGE_NT_OPTIONAL_HDR64_MAGIC = 0x20B,
+        IMAGE_ROM_OPTIONAL_HDR_MAGIC = 0x107
+    }
+    
+    public enum IMAGE_OPTIONAL_HEADER_SUBSYSTEM : ushort
+    {
+        IMAGE_SUBSYSTEM_UNKNOWN = 0,
+        IMAGE_SUBSYSTEM_NATIVE = 1,
+        IMAGE_SUBSYSTEM_WINDOWS_GUI = 2,
+        IMAGE_SUBSYSTEM_WINDOWS_CUI = 3,
+        IMAGE_SUBSYSTEM_OS2_CUI = 5,
+        IMAGE_SUBSYSTEM_POSIX_CUI = 7,
+        IMAGE_SUBSYSTEM_WINDOWS_CE_GUI = 9,
+        IMAGE_SUBSYSTEM_EFI_APPLICATION = 10,
+        IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER = 11,
+        IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER = 12,
+        IMAGE_SUBSYSTEM_EFI_ROM = 13,
+        IMAGE_SUBSYSTEM_XBOX = 14,
+        IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16
+    }
+    
+    [Flags()]
+    public enum IMAGE_OPTIONAL_HEADER_DLL_CHARACTERISTICS : ushort
+    {
+        IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE = 0x40,
+        IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY = 0x80,
+        IMAGE_DLLCHARACTERISTICS_NX_COMPAT = 0x100,
+        IMAGE_DLLCHARACTERISTICS_NO_ISOLATION = 0x200,
+        IMAGE_DLLCHARACTERISTICS_NO_SEH = 0x400,
+        IMAGE_DLLCHARACTERISTICS_NO_BIND = 0x800,
+        IMAGE_DLLCHARACTERISTICS_WDM_DRIVER = 0x2000,
+        IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000
+    }
+    
+    public enum IMAGE_DIRECTORY_ENTRY
+    {
+         IMAGE_DIRECTORY_ENTRY_EXPORT         =  0,   // Export Directory
+         IMAGE_DIRECTORY_ENTRY_IMPORT         =  1,   // Import Directory
+         IMAGE_DIRECTORY_ENTRY_RESOURCE       =  2,   // Resource Directory
+         IMAGE_DIRECTORY_ENTRY_EXCEPTION      =  3,   // Exception Directory
+         IMAGE_DIRECTORY_ENTRY_SECURITY       =  4,   // Security Directory
+         IMAGE_DIRECTORY_ENTRY_BASERELOC      =  5,   // Base Relocation Table
+         IMAGE_DIRECTORY_ENTRY_DEBUG          =  6,   // Debug Directory
+         // IMAGE_DIRECTORY_ENTRY_COPYRIGHT   =  7,   // (X86 usage)
+         IMAGE_DIRECTORY_ENTRY_ARCHITECTURE   =  7,   // Architecture Specific Data
+         IMAGE_DIRECTORY_ENTRY_GLOBALPTR      =  8,   // RVA of GP
+         IMAGE_DIRECTORY_ENTRY_TLS            =  9,   // TLS Directory
+         IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    = 10,   // Load Configuration Directory
+         IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   = 11,   // Bound Import Directory in headers
+         IMAGE_DIRECTORY_ENTRY_IAT            = 12,   // Import Address Table
+         IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   = 13,   // Delay Load Import Descriptors
+         IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14,   // COM Runtime descriptor
+         IMAGE_DIRECTORY_END_MARKER           = 15,   // Not actual data (always 0)
+    }
+}

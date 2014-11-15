@@ -43,7 +43,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <StartAction>Project</StartAction>
-    <StartArguments>-e Wow.exe -s</StartArguments>
+    <StartArguments>-e Wow.exe -c</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
@@ -87,12 +87,20 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnmanagedBuffer.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="x86\Environment.cs" />
+    <Compile Include="x86\Expression.cs" />
+    <Compile Include="x86\Extensions.cs" />
+    <Compile Include="x86\InstructionArgument.cs" />
+    <Compile Include="x86\PE.cs" />
+    <Compile Include="x86\PEEnums.cs" />
+    <Compile Include="x86\Registers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Cmsg" />
+    <Folder Include="x86" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ProfilingSessions\Session20141102_164322.sdps" />

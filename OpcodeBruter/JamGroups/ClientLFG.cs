@@ -15,7 +15,7 @@ namespace OpcodeBruter.JamGroups
         {
 
         }
-        
+
         public override int StructureOffset {
             get { return 0x1015598; }
         }

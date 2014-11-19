@@ -28,7 +28,7 @@ namespace x86
         public readonly uint Immediate;
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="arg"></param>
         public InstructionArgument(Emulator env, string arg)
@@ -52,7 +52,7 @@ namespace x86
                 {
                     // get string inside brackets
                     string ptr = arg.Substring(lbi + 1, rbi - lbi - 1);
-                    
+
                     // replace registers with the values contained within
                     ptr = ptr.Replace("eax", env.Eax.Value.ToString());
                     ptr = ptr.Replace("ebx", env.Ebx.Value.ToString());

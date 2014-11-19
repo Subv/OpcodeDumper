@@ -26,27 +26,28 @@ namespace OpcodeBruter
         private int _checker;
         private int _connIndex;
         private JamGroup _groupName;
-        
+
         public JamGroup GetGroup() { return _groupName; }
-        
+
         public JamDispatch(FileStream wow)
         {
             this.wowStream = wow;
             Disasm = UnmanagedBuffer.CreateFromFile(wow);
             var binary = new BinaryReader(wow);
             binary.BaseStream.Seek(StructureOffset - 0x401400, SeekOrigin.Begin);
-            
+
             var nameOffset = binary.ReadInt32() - 0x400C00;
-            
-            // + 3 skips prologue, + 3 mov reg, dword ptr [...] (we manually insert the opcode)
+
             _checker = binary.ReadInt32() - 0x400C00;
             binary.ReadBytes(PaddingSize);
-            _connIndex = binary.ReadInt32(); // This @Shauren?
+            _connIndex = binary.ReadInt32(); // Not the actual function - just skipping by
             if (_connIndex > 0)
                 _connIndex -= 0x400C00;
             _dispatcher = binary.ReadInt32() - 0x400C00;
-            
+            _connIndex = binary.ReadInt32() - 0x400C00;
+
             binary.BaseStream.Seek(nameOffset, SeekOrigin.Begin);
+
             var groupName = String.Empty;
             while (binary.PeekChar() != '\0')
                 groupName += binary.ReadChar();

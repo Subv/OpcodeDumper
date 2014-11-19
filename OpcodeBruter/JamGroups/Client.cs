@@ -17,7 +17,7 @@ namespace OpcodeBruter.JamGroups
 
         public Client(FileStream wow) : base(wow)
         {
-            
+
         }
     }
 }

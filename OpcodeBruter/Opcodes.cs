@@ -18,7 +18,7 @@ namespace OpcodeBruter
         private static string FilePath = @"https://raw.githubusercontent.com/TrinityCore/WowPacketParser/master/WowPacketParser/Enums/Version/V6_0_3_19103/Opcodes.cs";
         public static bool TryPopulate(bool smsg = true)
         {
-            if (Program.Debug || (smsg ? SMSG : CMSG).Count != 0)
+            if (Config.GhNames || (smsg ? SMSG : CMSG).Count != 0)
                 return true;
 
             try
@@ -44,7 +44,7 @@ namespace OpcodeBruter
             }
             catch (WebException /*whatever*/) // Haha so funny I is.
             {
-                Console.WriteLine("Unable to query opcodes. Try again.");
+                Logger.WriteConsoleLine("Unable to query opcodes. Exiting. Try again.");
                 return false;
             }
 

@@ -247,21 +247,21 @@ namespace x86
     public enum EFlags
     {
         /// <summary>
-        /// CF. Set if an arithmetic operation generates a carry or a borrow out 
-        /// of the most-significant bit of the result; cleared if otherwise.  This flag 
-        /// indicates an overflow condition for unsigned-integer arithmetic. It is also 
+        /// CF. Set if an arithmetic operation generates a carry or a borrow out
+        /// of the most-significant bit of the result; cleared if otherwise.  This flag
+        /// indicates an overflow condition for unsigned-integer arithmetic. It is also
         /// used in multiple-precision arithmetic.
         /// </summary>
         CarryFlag = 1 << 0,
 
         /// <summary>
-        /// PF. Set if the least-significant byte of the result contains an even 
+        /// PF. Set if the least-significant byte of the result contains an even
         /// number of 1 bits; cleared otherwise.
         /// </summary>
         ParityFlag = 1 << 2,
 
         /// <summary>
-        /// AF. Set if an arithmetic operation generates a carry or a borrow out 
+        /// AF. Set if an arithmetic operation generates a carry or a borrow out
         /// of bit 3 of the result; cleared otherwise. This flag is used in BCD arithmetic.
         /// </summary>
         AdjustFlag = 1 << 4,
@@ -272,22 +272,22 @@ namespace x86
         ZeroFlag = 1 << 6,
 
         /// <summary>
-        /// SF. Set equal to the most-significant bit of the result, which is the 
-        /// sign bit of a signed integer.  Zero indicates a positive value and one indicates 
+        /// SF. Set equal to the most-significant bit of the result, which is the
+        /// sign bit of a signed integer.  Zero indicates a positive value and one indicates
         /// a negative value.
         /// </summary>
         SignFlag = 1 << 7,
 
         /// <summary>
-        /// DF. When set, causes string instructions to auto-decrement (process 
+        /// DF. When set, causes string instructions to auto-decrement (process
         /// strings from high to low addresses), otherwise they auto-increment by default.
         /// </summary>
         DirectionFlag = 1 << 10,
 
         /// <summary>
-        /// OF. Set if the integer result is too large a positive number or too 
-        /// small a negative number (excluding the sign-bit) to fit in the destination operand; 
-        /// cleared otherwise. This flag indicates an overflow condition for signed-integer 
+        /// OF. Set if the integer result is too large a positive number or too
+        /// small a negative number (excluding the sign-bit) to fit in the destination operand;
+        /// cleared otherwise. This flag indicates an overflow condition for signed-integer
         /// (two's complement) arithmetic.
         /// </summary>
         OverflowFlag = 1 << 11,

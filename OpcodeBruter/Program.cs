@@ -12,12 +12,23 @@ namespace OpcodeBruter
 {
     class Program
     {
-        public static bool Debug = false;
-        
         public static Dictionary<JamGroup, JamDispatch> Dispatchers = new Dictionary<JamGroup, JamDispatch>();
+        public static Dictionary<uint, uint> OpcodeToFileOffset = new Dictionary<uint, uint>();
 
         public static Emulator environment;
-        
+
+        public static byte[][] ClientGroupPatterns = new byte[][] {
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x00 }, // Client
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x43, 0x68, 0x61, 0x74, 0x00 }, // ClientChat
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x47, 0x61, 0x72, 0x72, 0x69, 0x73, 0x6F, 0x6E, 0x00 }, // ClientGarrison
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x47, 0x75, 0x69, 0x6C, 0x64, 0x00 }, // ClientGuild
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x4C, 0x46, 0x47, 0x00 }, // ClientLFG
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x4D, 0x6F, 0x76, 0x65, 0x6D, 0x65, 0x6E, 0x74, 0x00 }, // ClientMovement
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x51, 0x75, 0x65, 0x73, 0x74, 0x00 }, // ClientQuest
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x6F, 0x63, 0x69, 0x61, 0x6C, 0x00 }, // ClientSocial
+            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x70, 0x65, 0x6C, 0x6C, 0x00 } // ClientSpell
+        };
+
         public static void InitializeDictionary(FileStream wow)
         {
             Dispatchers[JamGroup.None] = null;
@@ -31,52 +42,43 @@ namespace OpcodeBruter
             Dispatchers[JamGroup.ClientSpell] = new JamGroups.ClientSpell(wow);
             Dispatchers[JamGroup.ClientQuest] = new JamGroups.ClientQuest(wow);
         }
-        
+
         static void Main(string[] args)
         {
-            if (args.Length == 0 || args.Contains("-help"))
-            {
-                ShowHelp();
+            if (!Config.Load(args))
                 return;
-            }
+
+            Logger.CreateOutputStream(Config.OutputFile);
 
             // Open the file
-            var filePath = AppDomain.CurrentDomain.BaseDirectory + "./Wow.exe";
-            if (args.Contains("-e"))
-                filePath = args[Array.IndexOf(args, "-e") + 1];
-            
-            FileStream wow = File.OpenRead(filePath);
+            FileStream wow = File.OpenRead(Config.Executable);
             if (!wow.CanRead)
                 return;
-            
+
             environment = Emulator.Create(wow);
 
             InitializeDictionary(wow);
-            if (!args.Contains("-s") || !args.Contains("-c"))
+            if (Config.DumpCmsg || Config.DumpSmsg)
             {
-                Console.WriteLine("Loading opcodes from GitHub, build 19103...");
+                Logger.WriteConsoleLine("Loading opcodes from GitHub, build 19103...");
                 if (!Opcodes.TryPopulate())
                     return;
             }
-            
-            var specificOpcodeValue = args.Contains("-o") ? Convert.ToUInt32(args[Array.IndexOf(args, "-o") + 1]) : 0x0000;
 
-            if (!args.Contains("-s"))
+            if (Config.DumpSmsg)
             {
-                var clock = new Stopwatch();
-                Console.WriteLine("Dumping SMSG opcodes...");
-                Console.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
-                Console.WriteLine("|     Opcode    |  JAM Parser | Jam Handler |     Group Name     | ConnIdx |");
-                Console.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
-                
+                Logger.WriteLine("Dumping SMSG opcodes...");
+
                 var jamGroupCount = new Dictionary<JamGroup, uint>();
                 var opcodesCount = 0;
                 var namesFoundCount = 0;
 
-                clock.Start();
-                if (specificOpcodeValue != 0x0000)
+                Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
+                Logger.WriteLine("|     Opcode    |  JAM Parser | Jam Handler |     Group Name     | ConnIdx |");
+                Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
+                if (Config.SpecificOpcodeValue != 0xBADD)
                 {
-                    if (DumpSmsgOpcode(specificOpcodeValue, jamGroupCount))
+                    if (DumpSmsgOpcode(Config.SpecificOpcodeValue, jamGroupCount))
                         ++opcodesCount;
                 }
                 else
@@ -89,30 +91,30 @@ namespace OpcodeBruter
                             ++namesFoundCount;
                     }
                 }
-                clock.Stop();
-                Console.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
-                Console.WriteLine(@"Dumped {0} SMSG JAM opcodes in {1} ms.", opcodesCount, clock.ElapsedMilliseconds);
+                Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
+                Logger.WriteLine(@"Dumped {0} SMSG JAM opcodes.", opcodesCount);
                 for (var i = 0; i < jamGroupCount.Count; ++i)
-                    Console.WriteLine("Dumped {0} SMSG {1} opcodes.", jamGroupCount.Values.ElementAt(i), jamGroupCount.Keys.ElementAt(i).ToString());
-                
+                    Logger.WriteLine("Dumped {0} SMSG {1} opcodes.", jamGroupCount.Values.ElementAt(i), jamGroupCount.Keys.ElementAt(i).ToString());
+
                 // Integrity check
                 if (namesFoundCount != Opcodes.SMSG.Count)
-                    Console.WriteLine("Found {0} WPP SMSG opcodes over {1}.", namesFoundCount, Opcodes.SMSG.Count);
+                    Logger.WriteLine("Found {0} WPP SMSG opcodes over {1}.", namesFoundCount, Opcodes.SMSG.Count);
                 else
-                    Console.WriteLine("All SMSGs defined in WPP have been found.");
+                    Logger.WriteLine("All SMSGs defined in WPP have been found.");
             }
-            
-            if (!args.Contains("-c"))
+
+            if (Config.DumpCmsg)
             {
                 // Dump CMSGs
-                Console.WriteLine("Dumping CMSG opcodes...");
-                new Cmsg.CliOpcodes(wow, specificOpcodeValue);
+                Logger.WriteLine("Dumping CMSG opcodes...");
+                using (var c = new Cmsg.CliOpcodes(wow, Config.SpecificOpcodeValue));
             }
-            
         }
 
         protected static bool DumpSmsgOpcode(uint opcode, Dictionary<JamGroup, uint> jamGroupCount)
         {
+            //! NOTE: All the ESP modifications are caused by the fact that calling
+            //! does not push the return address on the stack.
             foreach (var dispatcherPair in Dispatchers)
             {
                 if (dispatcherPair.Key == JamGroup.None)
@@ -121,11 +123,11 @@ namespace OpcodeBruter
                 var dispatcher = dispatcherPair.Value;
                 if (dispatcher.CalculateCheckerFn() == 0)
                     continue;
-                
+
                 int offset = dispatcher.StructureOffset;
                 if (offset <= 0)
                     continue;
-                
+
                 int checkerFn    = dispatcher.CalculateCheckerFn();
                 int connectionFn = dispatcher.CalculateConnectionFn();
                 int dispatcherFn = dispatcher.CalculateDispatcherFn();
@@ -136,31 +138,34 @@ namespace OpcodeBruter
                 environment.Execute(checkerFn, dispatcher.Disasm, false);
                 if (environment.Eax.Value == 0)
                     continue;
-                
+
                 var connIndex = 0u;
-                /*if (connectionFn != 0)
+                if (connectionFn != 0)
                 {
                     environment.Reset();
+                    environment.Push();
+                    environment.Push();
+                    environment.Push();
                     environment.Push(opcode);
+                    environment.Push();
                     environment.Esp.Value -= 4;
                     environment.Execute(connectionFn, dispatcher.Disasm, false);
-                    var requiresInstanceConnectionFn = environment.GetCalledOffsets()[0];
-                    
-                    // Breaks here - segment registers are not implemented.
-                    environment.Reset();
-                    environment.Push(opcode);
-                    environment.Esp.Value -= 4;
-                    environment.Execute(requiresInstanceConnectionFn, dispatcher.Disasm, false);
-                    connIndex = environment.Eax.Value;
-                }*/
-                
-                // The stack is awfully patched up together and breaks here.
-                // Call the dispatcher, but do not follow E8. Capture the call,
-                // Re-fix the stack, and work from there.
+                    if (environment.Eax.Al == 0)
+                    {
+                        var requiresInstanceConnectionFn = environment.GetCalledOffsets()[0] - 0x400C00;
+
+                        environment.Reset();
+                        environment.Push(opcode);
+                        environment.Esp.Value -= 4;
+                        environment.Execute(requiresInstanceConnectionFn, dispatcher.Disasm, false);
+                        connIndex = environment.Eax.Value;
+                    }
+                }
+
                 environment.Reset();
                 environment.Execute(dispatcherFn, dispatcher.Disasm, false);
                 var calleeOffset = environment.GetCalledOffsets()[0] - 0x400C00;
-                
+
                 environment.Reset();
                 environment.Push();
                 environment.Push((ushort)0);
@@ -172,7 +177,7 @@ namespace OpcodeBruter
                 var jamData = environment.GetCalledOffsets();
                 if (jamData.Length < 2)
                     continue;
-                
+
                 var handler = jamData[0];
                 var parser  = jamData[1];
                 switch (dispatcher.GetGroup())
@@ -189,8 +194,8 @@ namespace OpcodeBruter
                 if (!jamGroupCount.ContainsKey(dispatcher.GetGroup()))
                     jamGroupCount.Add(dispatcher.GetGroup(), 0);
                 jamGroupCount[dispatcher.GetGroup()] += 1;
-                
-                Console.WriteLine("| {4} (0x{0:X4}) |  0x{1:X8} |  0x{2:X8} | {3} | {6} | {5}",
+
+                Logger.WriteLine("| {4} (0x{0:X4}) |  0x{1:X8} |  0x{2:X8} | {3} | {6} | {5}",
                                   opcode,
                                   handler, parser,
                                   dispatcher.GetGroup().ToString().PadLeft(18),
@@ -200,17 +205,6 @@ namespace OpcodeBruter
                 return true;
             }
             return false;
-        }
-        
-        protected static void ShowHelp()
-        {
-            Console.WriteLine("Arguments:");
-            Console.WriteLine("-e [Value]     : Indicates the path to Wow.exe. Mandatory");
-            Console.WriteLine("-o [Value]     : Tries to compute data for a specific opcode value.");
-            Console.WriteLine("                 [Value] should be a decimal number");
-            Console.WriteLine("-c             : Do not dump CMSG opcodes.");
-            Console.WriteLine("-s             : Do not dump SMSG opcodes.");
-            Console.WriteLine("-help          : This help message.");
         }
     }
 }

@@ -43,7 +43,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <StartAction>Project</StartAction>
-    <StartArguments>-e Wow.exe -c</StartArguments>
+    <StartArguments>-e Wow.exe -s</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
@@ -70,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cmsg\CliOpcodes.cs" />
+    <Compile Include="Config.cs" />
     <Compile Include="JamDispatch.cs" />
     <Compile Include="JamGroups.cs" />
     <Compile Include="JamGroups\Client.cs" />
@@ -81,7 +82,7 @@
     <Compile Include="JamGroups\ClientGarrison.cs" />
     <Compile Include="JamGroups\ClientGuild.cs" />
     <Compile Include="JamGroups\ClientLFG.cs" />
-    <Compile Include="Minidump.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="Opcodes.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

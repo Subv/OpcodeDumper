@@ -10,7 +10,7 @@ using x86;
 namespace OpcodeBruter.JamGroups
 {
     public class ClientGuild : JamDispatch
-    {        
+    {
         public override int StructureOffset {
             get { return 0xFA01C4; }
         }

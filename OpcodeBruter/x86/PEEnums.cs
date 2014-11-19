@@ -8,7 +8,7 @@ namespace x86
         IMAGE_FILE_MACHINE_IA64  = 0x0200,
         IMAGE_FILE_MACHINE_AMD64 = 0x8664
     }
-    
+
     [Flags()]
     public enum IMAGE_FILE_HEADER_CHARACTERISTICS : ushort
     {
@@ -28,14 +28,14 @@ namespace x86
         IMAGE_FILE_UP_SYSTEM_ONLY = 0x4000,
         IMAGE_FILE_BYTES_REVERSED_HI = 0x8000, // Obsolete
     }
-    
+
     public enum IMAGE_OPTIONAL_HEADER_MAGIC : ushort
     {
         IMAGE_NT_OPTIONAL_HDR32_MAGIC = 0x10B,
         IMAGE_NT_OPTIONAL_HDR64_MAGIC = 0x20B,
         IMAGE_ROM_OPTIONAL_HDR_MAGIC = 0x107
     }
-    
+
     public enum IMAGE_OPTIONAL_HEADER_SUBSYSTEM : ushort
     {
         IMAGE_SUBSYSTEM_UNKNOWN = 0,
@@ -52,7 +52,7 @@ namespace x86
         IMAGE_SUBSYSTEM_XBOX = 14,
         IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16
     }
-    
+
     [Flags()]
     public enum IMAGE_OPTIONAL_HEADER_DLL_CHARACTERISTICS : ushort
     {
@@ -65,7 +65,7 @@ namespace x86
         IMAGE_DLLCHARACTERISTICS_WDM_DRIVER = 0x2000,
         IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000
     }
-    
+
     public enum IMAGE_DIRECTORY_ENTRY
     {
          IMAGE_DIRECTORY_ENTRY_EXPORT         =  0,   // Export Directory

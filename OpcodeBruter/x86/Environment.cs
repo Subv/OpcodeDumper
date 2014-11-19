@@ -17,7 +17,8 @@ namespace x86
     {
         public List<uint> CallOffsets = new List<uint>();
         public List<uint> JumpBacks = new List<uint>();
-        
+        private List<uint> MemoryBreakPoints = new List<uint>();
+
         #region Processor
         public Eax Eax = new Eax();
         public Ebx Ebx = new Ebx();
@@ -31,7 +32,7 @@ namespace x86
         public EFlags EFlags = EFlags.ZeroFlag;
         public uint Cs = 0; // Holds the Code segment in which your program runs.
         public uint Ds = 0; // Holds the Data segment that your program accesses.
-        
+
         public Register GetRegisterByName(string reg)
         {
             switch (reg)
@@ -59,17 +60,17 @@ namespace x86
             }
             return null;
         }
-        
+
         public void ToggleFlagIf(EFlags flags, bool condition) { if (condition) SetFlags(flags); else ClearFlags(flags); }
         public void SetFlags(EFlags flags)   { EFlags = EFlags.Set(flags); }
         public void ClearFlags(EFlags flags) { EFlags = EFlags.Clear(flags); }
         public void ClearFlags()             { EFlags = EFlags.Clear(); }
-        
+
         public void UpdateFlags(ulong result, uint size, EFlags flags)
         {
             if (flags.HasFlag(EFlags.ZeroFlag))
                 ToggleFlagIf(EFlags.ZeroFlag, result == 0);
-            
+
             // http://graphics.stanford.edu/~seander/bithacks.html#ParityWith64Bits
             if (flags.HasFlag(EFlags.ParityFlag))
                 ToggleFlagIf(EFlags.ParityFlag, ((((((((ulong)result & 0xFF) * (ulong)0x0101010101010101) & 0x8040201008040201) % 0x1FF) & 1) == 0)));
@@ -79,10 +80,10 @@ namespace x86
                 uint signFlag = (uint)(1 << (int)((size << 3) - 1));
                 ToggleFlagIf(EFlags.SignFlag, (result & signFlag) == signFlag);
             }
-            
+
             if (flags.HasFlag(EFlags.AdjustFlag))
                 ToggleFlagIf(EFlags.AdjustFlag, (result & 8) == 8);
-            
+
             if (flags.HasFlag(EFlags.OverflowFlag))
             {
                 long signedResult = (long)result;
@@ -93,23 +94,23 @@ namespace x86
                 else if (size == 4)
                     ToggleFlagIf(EFlags.OverflowFlag, signedResult > int.MaxValue || signedResult < int.MinValue);
             }
-            
+
             if (flags.HasFlag(EFlags.CarryFlag))
                 ToggleFlagIf(EFlags.CarryFlag, ((result >> ((int)size << 3)) & 1) == 1);
         }
         #endregion Processor
-        
+
         #region Memory
         public readonly uint BaseAddress; //< Memory base address.
         public byte[] Memory;
-        
+
         public byte ReadByteFromMemory(uint address)
         {
             if (address < BaseAddress)
                 return 0xCC;
             return Memory[address - BaseAddress];
         }
-        
+
         public unsafe ushort ReadWordFromMemory(uint address)
         {
             uint offset = address - BaseAddress;
@@ -122,7 +123,7 @@ namespace x86
             }
             return 0xCCCC;
         }
-        
+
         public unsafe uint ReadDwordFromMemory(uint address)
         {
             uint offset = address - BaseAddress;
@@ -142,7 +143,7 @@ namespace x86
             if (offset < Memory.Length)
                 Memory[offset] = value;
         }
-        
+
         public unsafe void WriteWordToMemory(uint address, ushort value)
         {
             uint offset = address - BaseAddress;
@@ -154,7 +155,7 @@ namespace x86
                 }
             }
         }
-        
+
         public unsafe void WriteDwordToMemory(uint address, uint value)
         {
             uint offset = address - BaseAddress;
@@ -166,7 +167,7 @@ namespace x86
                 }
             }
         }
-        
+
         public void WriteMemory(uint address, object value)
         {
             switch (Type.GetTypeCode(value.GetType()))
@@ -200,7 +201,7 @@ namespace x86
             return 0xCCCCCCCC;
         }
         #endregion
-        
+
         #region Code execution
         private bool ExecuteJump(string disasmStr, Disasm disasm, string mnemonic)
         {
@@ -211,26 +212,26 @@ namespace x86
             else if (mnemonic == "je" || mnemonic == "jz") // Jump short if equal (ZF=1).
                 shouldJump = EFlags.HasFlag(EFlags.ZeroFlag);
             else if (mnemonic == "jne" || mnemonic == "jnz") // Jump short if not equal (ZF=0).
-                shouldJump = !EFlags.HasFlag(EFlags.ZeroFlag);  
+                shouldJump = !EFlags.HasFlag(EFlags.ZeroFlag);
             else if (mnemonic == "ja" || mnemonic == "jnbe") // Jump short if not below or equal (CF=0 and ZF=0).
-                shouldJump = !EFlags.HasFlag(EFlags.CarryFlag) && !EFlags.HasFlag(EFlags.ZeroFlag);  
-            else if (mnemonic == "jb" || mnemonic == "jc" || mnemonic == "jnae")  // Jump short if not above or equal (CF=1). 
-                shouldJump = EFlags.HasFlag(EFlags.CarryFlag);  
+                shouldJump = !EFlags.HasFlag(EFlags.CarryFlag) && !EFlags.HasFlag(EFlags.ZeroFlag);
+            else if (mnemonic == "jb" || mnemonic == "jc" || mnemonic == "jnae")  // Jump short if not above or equal (CF=1).
+                shouldJump = EFlags.HasFlag(EFlags.CarryFlag);
             else if (mnemonic == "jng" || mnemonic == "jle") // Jump short if not greater (ZF=1 or SF != OF).
-                shouldJump = EFlags.HasFlag(EFlags.ZeroFlag) || (EFlags.HasFlag(EFlags.SignFlag) != EFlags.HasFlag(EFlags.OverflowFlag));  
-            else if (mnemonic == "jnc" || mnemonic == "jnb" || mnemonic == "jae") // Jump short if not carry (CF=0). 
-                shouldJump = !EFlags.HasFlag(EFlags.CarryFlag);  
+                shouldJump = EFlags.HasFlag(EFlags.ZeroFlag) || (EFlags.HasFlag(EFlags.SignFlag) != EFlags.HasFlag(EFlags.OverflowFlag));
+            else if (mnemonic == "jnc" || mnemonic == "jnb" || mnemonic == "jae") // Jump short if not carry (CF=0).
+                shouldJump = !EFlags.HasFlag(EFlags.CarryFlag);
             else if (mnemonic == "jna" || mnemonic == "jbe") // Jump short if not above (CF=1 or ZF=1).
                 shouldJump = EFlags.HasFlag(EFlags.CarryFlag) || EFlags.HasFlag(EFlags.ZeroFlag);
             else if (mnemonic == "jge" || mnemonic == "jnl") // Jump short if greater or equal (SF=OF).
-                shouldJump = EFlags.HasFlag(EFlags.SignFlag) == EFlags.HasFlag(EFlags.OverflowFlag);  
+                shouldJump = EFlags.HasFlag(EFlags.SignFlag) == EFlags.HasFlag(EFlags.OverflowFlag);
             else if (mnemonic == "jg" || mnemonic == "jnle") // Jump short if greater (ZF=0 and SF=OF).
-                shouldJump = !EFlags.HasFlag(EFlags.ZeroFlag) && (EFlags.HasFlag(EFlags.SignFlag) == EFlags.HasFlag(EFlags.OverflowFlag)); 
-            else if (mnemonic == "jl" || mnemonic == "jnge") // Jump short if less (SF != OF). 
+                shouldJump = !EFlags.HasFlag(EFlags.ZeroFlag) && (EFlags.HasFlag(EFlags.SignFlag) == EFlags.HasFlag(EFlags.OverflowFlag));
+            else if (mnemonic == "jl" || mnemonic == "jnge") // Jump short if less (SF != OF).
                 shouldJump = EFlags.HasFlag(EFlags.SignFlag) != EFlags.HasFlag(EFlags.OverflowFlag);
-            else if (mnemonic == "jecxz") // Jump short if ECX register is 0. 
+            else if (mnemonic == "jecxz") // Jump short if ECX register is 0.
                 shouldJump = Ecx.Value == 0;
-            else if (mnemonic == "jcxz") // Jump short if CX register is 0. 
+            else if (mnemonic == "jcxz") // Jump short if CX register is 0.
                 shouldJump = Ecx.Cx == 0;
             else if (mnemonic == "jno") // Jump short if not overflow (OF=0)
                 shouldJump = !EFlags.HasFlag(EFlags.OverflowFlag);
@@ -246,14 +247,14 @@ namespace x86
                 shouldJump = !EFlags.HasFlag(EFlags.SignFlag);
             else
                 throw new Exception("Invalid jump type detected.");
-            
+
             if (!shouldJump)
                 return false;
 
             // We should jump.
             return true;
         }
-        
+
         private bool ExecuteASM(Disasm disasm, UnmanagedBuffer buffer, bool followCalls)
         {
             var entryPoint = buffer.Ptr.ToInt32();
@@ -263,21 +264,21 @@ namespace x86
                 disassemblyString = disassemblyString.Remove(disassemblyString.IndexOf(";"));
 
             disassemblyString = Regex.Replace(disassemblyString, @"\s+", " ", RegexOptions.IgnoreCase).Trim();
-            
+
             if (Regex.IsMatch(disassemblyString, @"[!@#$%^&()={}\\|/?<>.~`""'_]"))
                 return false;
-            
+
             if (disassemblyString.Length == 0 || disassemblyString.EndsWith(":"))
                 return false;
-            
+
             var tokens = disassemblyString.Split(' ');
             var mnemonic = tokens[0];
-            
+
             //Console.WriteLine("0x{0:X8} {1}", disasm.EIP.ToInt64(), disasm.CompleteInstr);
-            
-            if (disassemblyString.Contains("call far"))
+
+            if (disassemblyString.Contains("call far") || disassemblyString.Contains("xmm"))
                 return false;
-            
+
             List<InstructionArgument> arguments = new List<InstructionArgument>();
             // TODO Support for floating point opcodes
 
@@ -300,7 +301,7 @@ namespace x86
                 InstructionArgument src = null;
                 InstructionArgument dst = null;
                 InstructionArgument extra = null;
-                
+
                 if (parametersList.Length == 1)
                     dst = src = arguments[0];
                 else if (parametersList.Length == 2)
@@ -310,7 +311,7 @@ namespace x86
                 }
                 else if (parametersList.Length == 3)
                     extra = arguments[2];
-                
+
                 switch (mnemonic)
                 {
                     case "ret": case "retn":
@@ -796,7 +797,7 @@ namespace x86
             }
             return false;
         }
-        
+
         public void Execute(byte[] bytesArray)
         {
             UnmanagedBuffer buffer = new UnmanagedBuffer(bytesArray);
@@ -808,19 +809,19 @@ namespace x86
                 var result = BeaEngine.Disasm(disasm);
                 if (result == (int)BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
                     return;
-                
+
                 byteTally += result;
                 var jumped = ExecuteASM(disasm, buffer, false);
                 if (!jumped)
                     disasm.EIP = new IntPtr(disasm.EIP.ToInt64() + result);
             }
         }
-        
+
         public void Reset()
         {
             CallOffsets = new List<uint>();
             JumpBacks = new List<uint>();
-            
+
             Eax = new Eax();
             Ebx = new Ebx();
             Ecx = new Ecx();
@@ -864,7 +865,14 @@ namespace x86
                 CallOffsets[i] += 0x400C00;
         }
         #endregion
-        
+
+        public bool HasMemoryBreakpoint(uint offset)
+        {
+            return MemoryBreakPoints.IndexOf(offset - BaseAddress) != -1;
+        }
+
+        // public void SetMemoryBreakpoint(uint offset)
+
         public Emulator(uint memoryBaseAddress, uint memorySize = 0x06400000)
         {
             if (uint.MaxValue - memoryBaseAddress > memorySize)
@@ -878,39 +886,37 @@ namespace x86
             }
             else throw new ArgumentOutOfRangeException("Memory size must be between 256 bytes and 4 gigabytes.");
         }
-        
+
         public static Emulator Create(FileStream file)
         {
             var binary = new BinaryReader(file); // Can't using it.
 
             var emu = new Emulator(0, 0x32000000);
-            var peInfo = new PeHeaderReader(file.Name, emu);
+            var peInfo = new PeHeaderReader(file.Name);
 
             // Load .text
             var code = peInfo.TEXT;
             binary.BaseStream.Seek(code.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < code.SizeOfRawData; ++i)
                 emu.WriteByteToMemory(code.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
-            
-            /*var data = peInfo.DATA;
+
+            var data = peInfo.DATA;
             binary.BaseStream.Seek(data.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < data.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(data.VirtualAddress + i - peInfo.OptionalHeader32.BaseOfData, binary.ReadByte());
+                emu.WriteByteToMemory(data.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
 
             var rodata = peInfo.RODATA;
             binary.BaseStream.Seek(rodata.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < rodata.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(rodata.VirtualAddress + i - peInfo.OptionalHeader32.BaseOfData, binary.ReadByte());
+                emu.WriteByteToMemory(rodata.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
 
             var rdata = peInfo.RDATA;
             binary.BaseStream.Seek(rdata.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < rdata.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(rdata.VirtualAddress + i - peInfo.OptionalHeader32.BaseOfData, binary.ReadByte());
-            */
-            //var offs = emu.Memory.FindPattern(new byte[] { 0,1,2,3,4, 0x3F, 0x3F,5,6,7,8,0x3F,9}, 0);
+                emu.WriteByteToMemory(rdata.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
             return emu;
         }
-        
+
         public uint[] GetCalledOffsets(int count = 0, int start = 0)
         {
             if (CallOffsets.Count == 0)
@@ -919,7 +925,7 @@ namespace x86
                 return CallOffsets.ToArray();
             return CallOffsets.Skip(start < 0 ? Math.Max(0, CallOffsets.Count + start) : start).Take(count).ToArray();
         }
-        
+
         public void Push(object value = null)
         {
             if (value == null)
@@ -927,7 +933,7 @@ namespace x86
                 Esp.Value -= 4;
                 return;
             }
-            
+
             var fieldSize = 0u;
             switch (Type.GetTypeCode(value.GetType()))
             {

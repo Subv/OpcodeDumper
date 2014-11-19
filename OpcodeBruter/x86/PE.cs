@@ -141,7 +141,7 @@ namespace x86
             public UInt16 SizeOfOptionalHeader;
             public IMAGE_FILE_HEADER_CHARACTERISTICS Characteristics;
         }
-        
+
         public struct IMAGE_DATA_DIRECTORY
         {
             public UInt32 VirtualAddress;
@@ -177,10 +177,7 @@ namespace x86
         public IMAGE_OPTIONAL_HEADER64 OptionalHeader64 { get; private set; }
         public List<IMAGE_SECTION_HEADER> SectionHeaders { get; private set; }
         private BinaryReader Reader;
-        private Emulator Environment;
-        #endregion Private Fields
-        
-        #region Public fields
+
         public IMAGE_SECTION_HEADER RDATA { get {
                 return SectionHeaders.First(i => i.NameString.Contains(".rdata"));
             }
@@ -200,9 +197,8 @@ namespace x86
         #endregion
 
         #region Public Methods
-        public PeHeaderReader(string filePath, Emulator emulator)
+        public PeHeaderReader(string filePath)
         {
-            Environment = emulator;
             SectionHeaders = new List<IMAGE_SECTION_HEADER>();
             // Read in the DLL or EXE and get the timestamp
             Reader = new BinaryReader(new FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read));
@@ -222,7 +218,7 @@ namespace x86
                 else
                     OptionalHeader64 = FromBinaryReader<IMAGE_OPTIONAL_HEADER64>(Reader);
             }
-         
+
             // http://msdn.microsoft.com/en-us/library/windows/desktop/ms680313(v=vs.85).aspx
             ParseFileHeader(FileHeader);
             // http://msdn.microsoft.com/en-us/library/windows/desktop/ms680339(v=vs.85).aspx
@@ -277,7 +273,7 @@ namespace x86
         {
             LogStructure(fileHeader);
         }
-        
+
         private void ParseOptionalHeader()
         {
             if (this.Is32BitHeader)
@@ -285,7 +281,7 @@ namespace x86
             else
                 ParseOptionalHeader(OptionalHeader64);
         }
-        
+
         private void ParseOptionalHeader(IMAGE_OPTIONAL_HEADER32 optHeader)
         {
             LogStructure(optHeader);
@@ -294,7 +290,7 @@ namespace x86
             for (uint i = 0; i < FileHeader.NumberOfSections; ++i)
                 ParseImageSectionHeader();
         }
-        
+
         private void ParseOptionalHeader(IMAGE_OPTIONAL_HEADER64 optHeader)
         {
             LogStructure(optHeader);
@@ -303,12 +299,12 @@ namespace x86
             for (uint i = 0; i < FileHeader.NumberOfSections; ++i)
                 ParseImageSectionHeader();
         }
-        
+
         private void ParseDataDirectory(IMAGE_DATA_DIRECTORY directory, uint position)
         {
             LogStructure(directory);
         }
-        
+
         // http://msdn.microsoft.com/en-us/library/windows/desktop/ms680341(v=vs.85).aspx
         private void ParseImageSectionHeader()
         {
@@ -317,10 +313,10 @@ namespace x86
             LogStructure(header);
             Reader.BaseStream.Seek(-4, SeekOrigin.Current); // The fuck? Why is this needed?
         }
-        
+
         private void LogStructure(object obj)
         {
-            if (!Program.Debug)
+            if (!Config.Debug)
                 return;
 
             Console.WriteLine(obj.GetType().Name);
@@ -329,14 +325,14 @@ namespace x86
                 if (field.GetCustomAttribute(typeof(MarshalAsAttribute), false) != null)
                 {
                     if (field.FieldType.GetElementType().IsPrimitive)
-                        Console.WriteLine("-> {0}: {1}", field.Name.PadRight(40), Encoding.UTF8.GetString((byte[])field.GetValue(obj)));
+                        Logger.WriteConsoleLine("-> {0}: {1}", field.Name.PadRight(40), Encoding.UTF8.GetString((byte[])field.GetValue(obj)));
                     else
                         LogStructure(field.GetValue(obj));
                 }
                 else if (field.FieldType.IsPrimitive)
-                    Console.WriteLine("-> {0}: 0x{1:X8} ({1})", field.Name.PadRight(40), field.GetValue(obj));
+                    Logger.WriteConsoleLine("-> {0}: 0x{1:X8} ({1})", field.Name.PadRight(40), field.GetValue(obj));
                 else foreach (var subField in field.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
-                    Console.WriteLine("-> {0}: 0x{1:X8} ({1})", String.Format("{0}.{1}", field.Name, subField.Name).PadRight(40), subField.GetValue(field));
+                    Logger.WriteConsoleLine("-> {0}: 0x{1:X8} ({1})", String.Format("{0}.{1}", field.Name, subField.Name).PadRight(40), subField.GetValue(field));
             }
         }
     }

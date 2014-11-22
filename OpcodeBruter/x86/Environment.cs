@@ -18,6 +18,7 @@ namespace x86
         public List<uint> CallOffsets = new List<uint>();
         public List<uint> JumpBacks = new List<uint>();
         private List<uint> MemoryBreakPoints = new List<uint>();
+        public PeHeaderReader PeInfo { get; private set; }
 
         #region Processor
         public Eax Eax = new Eax();
@@ -318,6 +319,7 @@ namespace x86
                         // Actually use the stack here.
                         if (JumpBacks.Count > 0)
                         {
+                            Pop(4);
                             disasm.EIP = new IntPtr(JumpBacks[0]);
                             JumpBacks.RemoveAt(0);
                             return true;
@@ -684,10 +686,12 @@ namespace x86
                     #endregion
                     case "call":
                         // TODO Use the stack to keep s and r (saved registers (0) and jumpback offset (+4))
+                        // TODO Half done. (see below)
                         var offset = (int)disasm.Instruction.AddrValue - buffer.Ptr.ToInt32();
                         CallOffsets.Add((uint)offset);
                         if (followCalls)
                         {
+                            Push(offset+5); // Push the return address on the stack
                             JumpBacks.Add((uint)(disasm.EIP.ToInt32() + 5));
                             disasm.EIP = new IntPtr((int)disasm.Instruction.AddrValue);
                             return true;
@@ -887,33 +891,33 @@ namespace x86
             else throw new ArgumentOutOfRangeException("Memory size must be between 256 bytes and 4 gigabytes.");
         }
 
-        public static Emulator Create(FileStream file)
+        public static Emulator Create(Stream file)
         {
             var binary = new BinaryReader(file); // Can't using it.
 
             var emu = new Emulator(0, 0x32000000);
-            var peInfo = new PeHeaderReader(file.Name);
+            emu.PeInfo = new PeHeaderReader((file as FileStream).Name);
 
             // Load .text
-            var code = peInfo.TEXT;
+            var code = emu.PeInfo.TEXT;
             binary.BaseStream.Seek(code.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < code.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(code.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
+                emu.WriteByteToMemory(code.VirtualAddress + i + emu.PeInfo.OptionalHeader32.ImageBase, binary.ReadByte());
 
-            var data = peInfo.DATA;
+            var data = emu.PeInfo.DATA;
             binary.BaseStream.Seek(data.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < data.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(data.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
+                emu.WriteByteToMemory(data.VirtualAddress + i + emu.PeInfo.OptionalHeader32.ImageBase, binary.ReadByte());
 
-            var rodata = peInfo.RODATA;
+            var rodata = emu.PeInfo.RODATA;
             binary.BaseStream.Seek(rodata.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < rodata.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(rodata.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
+                emu.WriteByteToMemory(rodata.VirtualAddress + i + emu.PeInfo.OptionalHeader32.ImageBase, binary.ReadByte());
 
-            var rdata = peInfo.RDATA;
+            var rdata = emu.PeInfo.RDATA;
             binary.BaseStream.Seek(rdata.PhysicalAddress, SeekOrigin.Begin);
             for (uint i = 0; i < rdata.SizeOfRawData; ++i)
-                emu.WriteByteToMemory(rdata.VirtualAddress + i + peInfo.OptionalHeader32.ImageBase, binary.ReadByte());
+                emu.WriteByteToMemory(rdata.VirtualAddress + i + emu.PeInfo.OptionalHeader32.ImageBase, binary.ReadByte());
             return emu;
         }
 
@@ -926,6 +930,18 @@ namespace x86
             return CallOffsets.Skip(start < 0 ? Math.Max(0, CallOffsets.Count + start) : start).Take(count).ToArray();
         }
 
+        public uint Pop(uint s)
+        {
+            if (s == 2 || s == 4)
+            {
+                var ret = ReadMemory(Esp, s);
+                Esp.Value += s;
+                return ret;
+            }
+            return 0;
+        }
+            
+        
         public void Push(object value = null)
         {
             if (value == null)

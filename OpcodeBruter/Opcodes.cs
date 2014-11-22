@@ -2,15 +2,11 @@
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace OpcodeBruter
 {
-    /// <summary>
-    /// This is the exact same file than WPP. Just *slightly* modified
-    /// {Opcode\.(.+), 0x([A-Z0-9]+)},
-    /// { "\1", 0x\2 },
-    /// </summary>
     public static class Opcodes
     {
         public static Regex OpcodeRgx = new Regex(@"Opcode\.(.+), 0x([A-Z0-9]+)(?: | 0x[0-9A-Z]+)?", RegexOptions.IgnoreCase);
@@ -18,9 +14,10 @@ namespace OpcodeBruter
         private static string FilePath = @"https://raw.githubusercontent.com/TrinityCore/WowPacketParser/master/WowPacketParser/Enums/Version/V6_0_3_19103/Opcodes.cs";
         public static bool TryPopulate(bool smsg = true)
         {
-            if (Config.GhNames || (smsg ? SMSG : CMSG).Count != 0)
+            if ((smsg ? SMSG : CMSG).Count != 0)
                 return true;
 
+            Logger.WriteConsoleLine("Loading opcodes from GitHub, build 19103...");
             try
             {
                 WebClient client = new WebClient();
@@ -53,6 +50,7 @@ namespace OpcodeBruter
 
         public static string GetOpcodeNameForServer(uint opcode)
         {
+            return SMSG.FirstOrDefault(p => p.Value == opcode).Key;
             foreach (var pair in SMSG)
                 if (pair.Value == opcode)
                     return pair.Key;
@@ -61,6 +59,7 @@ namespace OpcodeBruter
 
         public static string GetOpcodeNameForClient(uint opcode)
         {
+            return CMSG.FirstOrDefault(p => p.Value == opcode).Key;
             foreach (var pair in CMSG)
                 if (pair.Value == opcode)
                     return pair.Key;

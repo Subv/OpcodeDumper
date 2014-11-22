@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace OpcodeBruter
 {
@@ -16,13 +17,13 @@ namespace OpcodeBruter
         public static bool Debug = false;
 
         [ConfigKey("-no-gh-names", "Controls if names from WPP are to be downloaded.")]
-        public static bool GhNames = false;
+        public static bool NoGhNames = true;
         
         [ConfigKey("-no-client", "Controls if CMSG opcodes are to be dumped.")]
-        public static bool DumpCmsg = true;
+        public static bool NoCmsg = true;
 
         [ConfigKey("-no-server", "Controls if SMSG opcodes are to be dumped.")]
-        public static bool DumpSmsg = true;
+        public static bool NoSmsg = true;
 
         [ConfigKey("-e", "Path to the wow executable.")]
         public static string Executable = AppDomain.CurrentDomain.BaseDirectory + "./Wow.exe";
@@ -34,22 +35,35 @@ namespace OpcodeBruter
         {
             var showHelp = !TryGet<uint>(args, "-op", ref SpecificOpcodeValue, 0xBADD);
             showHelp = !TryGet<bool>(args, "-debug", ref Debug, false);
-            showHelp = !TryGet<bool>(args, "-no-client", ref DumpCmsg, false);
-            showHelp = !TryGet<bool>(args, "-no-server", ref DumpSmsg, true);
-            showHelp = !TryGet<bool>(args, "-no-gh-names", ref GhNames, false);
+            showHelp = !TryGet<bool>(args, "-no-client", ref NoCmsg, false);
+            showHelp = !TryGet<bool>(args, "-no-server", ref NoSmsg, false);
+            showHelp = !TryGet<bool>(args, "-no-gh-names", ref NoGhNames, true);
             showHelp = !TryGet<string>(args, "-of", ref OutputFile, String.Empty);
             showHelp = !TryGet<string>(args, "-e", ref Executable, AppDomain.CurrentDomain.BaseDirectory + "./Wow.exe");
             return showHelp ? ShowHelp() : true;
         }
 
-        private static bool ShowHelp()
+        public static bool ShowHelp()
         {
             Console.WriteLine("Arguments:");
+
+            var fields = typeof(Config).GetFields(BindingFlags.Static | BindingFlags.Public);
+            var keys = new List<string>();
+            var desc = new List<string>();
+
             foreach (var f in typeof(Config).GetFields(BindingFlags.Static | BindingFlags.Public))
             {
-                var attr = (ConfigKey)f.GetCustomAttribute(typeof(ConfigKey), false);
-                Logger.WriteConsoleLine(" {0} : {1}", attr.Key.PadRight(11), attr.Description);
+                ConfigKey attr = null; 
+                if ((attr = (ConfigKey)f.GetCustomAttribute(typeof(ConfigKey), false)) != null)
+                {
+                    keys.Add(attr.Key);
+                    desc.Add(attr.Description);
+                }
             }
+            
+            var padLength = keys.Max(s => s.Length);
+            for (var i = 0; i < keys.Count; ++i)
+                Logger.WriteConsoleLine(" {0} : {1}", keys[i].PadRight(padLength), desc[i]);
             return false;
         }
 

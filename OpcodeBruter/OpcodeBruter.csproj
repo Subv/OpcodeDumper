@@ -43,7 +43,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <StartAction>Project</StartAction>
-    <StartArguments>-e Wow.exe -s</StartArguments>
+    <StartArguments>-e Wow.exe -no-client -no-gh-names</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
@@ -69,8 +69,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cmsg\CliOpcodes.cs" />
+    <Compile Include="Dumpers\CMSG.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="Dumpers\SMSG.cs" />
     <Compile Include="JamDispatch.cs" />
     <Compile Include="JamGroups.cs" />
     <Compile Include="JamGroups\Client.cs" />
@@ -100,7 +101,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Cmsg" />
+    <Folder Include="Dumpers" />
     <Folder Include="x86" />
   </ItemGroup>
   <ItemGroup>

@@ -10,8 +10,8 @@ namespace OpcodeBruter.JamGroups
 {
     public class ClientQuest : JamDispatch
     {
-        public ClientQuest(FileStream wow)
-            : base(wow)
+        public ClientQuest()
+            : base()
         {
 
         }

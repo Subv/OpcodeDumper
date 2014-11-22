@@ -18,8 +18,8 @@ namespace OpcodeBruter.JamGroups
             get { return 0x1014BD0; }
         }
 
-        public ClientSpell(FileStream wow)
-            : base(wow)
+        public ClientSpell()
+            : base()
         {
 
         }

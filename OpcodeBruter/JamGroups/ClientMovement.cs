@@ -10,8 +10,8 @@ namespace OpcodeBruter.JamGroups
 {
     public class ClientMovement : JamDispatch
     {
-        public ClientMovement(FileStream wow)
-            : base(wow)
+        public ClientMovement()
+            : base()
         {
 
         }

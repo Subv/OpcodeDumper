@@ -5,18 +5,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Bea;
 
-namespace OpcodeBruter.Cmsg
+namespace OpcodeBruter
 {
-    /// <summary>
-    /// Description of CliOpcodes.
-    /// </summary>
-    public class CliOpcodes : IDisposable
+    public class CMSG
     {
-        public BinaryReader Binary;
-        public byte[] WowBytes;
-        public List<uint> PatternOffsets;
-        public uint[] OffsetIndex;
-
         private static byte[] Pattern = new byte[] {
             0x55,                             // push    ebp
             0x8B, 0xEC,                       // mov     ebp, esp
@@ -27,24 +19,23 @@ namespace OpcodeBruter.Cmsg
             0xE8, 0xFF, 0xFF, 0xFF, 0xFF      // call    CDataStore::PutInt32
         };
 
-        public CliOpcodes(FileStream wow, uint specificOpcode = 0xBADD)
+        public static void Dump(uint specificOpcode = 0xBADD)
         {
-            this.WowBytes = File.ReadAllBytes(wow.Name);
-            this.Binary = new BinaryReader(new MemoryStream(this.WowBytes));
-            this.PatternOffsets = this.WowBytes.FindPattern(Pattern, 0xFF);
-
+            var patternOffsets = Program.ClientBytes.FindPattern(Pattern, 0xFF);
             var callIndex = (uint)(Array.IndexOf<byte>(Pattern, 0xE8) + 0x400C00);
             var opcodeCount = 0;
+
+            Logger.WriteLine();
+            Logger.WriteLine("Dumping CMSG opcodes...");
+            Logger.WriteLine("Found {0} CMSGs candidates. Dumping, this may take a while...", patternOffsets.Count);
             Logger.WriteLine("+---------------+------------+");
             Logger.WriteLine("|    Opcode     |   CliPut   |");
             Logger.WriteLine("+---------------+------------+");
 
-            Logger.WriteLine("Found {0} CMSGs candidates. Dumping, this may take a while...", this.PatternOffsets.Count);
-
-            foreach (var currPatternOffset in this.PatternOffsets)
+            foreach (var currPatternOffset in patternOffsets)
             {
-                Binary.BaseStream.Seek(currPatternOffset, SeekOrigin.Begin);
-                var bytes = Binary.ReadBytes(Pattern.Length);
+                Program.BaseStream.Seek(currPatternOffset, SeekOrigin.Begin);
+                var bytes = Program.ClientStream.ReadBytes(Pattern.Length);
 
                 var callOffset = BitConverter.ToInt32(bytes, 15);
                 var subCall = (uint)(currPatternOffset + callIndex) + BitConverter.ToUInt32(bytes, 15) + 5;
@@ -64,13 +55,13 @@ namespace OpcodeBruter.Cmsg
                     0xFF, 0xFF, 0xFF, 0xFF  // Dtor
                 };
 
-                var vtOffsets = WowBytes.FindPattern(vtablePattern, 0xFF).Where(t => (t - 0x400C00) < this.WowBytes.Length);
+                var vtOffsets = Program.ClientBytes.FindPattern(vtablePattern, 0xFF).Where(t => (t - 0x400C00) < Program.ClientBytes.Length);
                 foreach (var vtOffset in vtOffsets)
                 {
-                    Binary.BaseStream.Seek(vtOffset, SeekOrigin.Begin);
-                    var ctor = Binary.ReadUInt32();
-                    var cliPut = Binary.ReadUInt32();
-                    var cliPutWithMsg = Binary.ReadUInt32();
+                    Program.BaseStream.Seek(vtOffset + 4, SeekOrigin.Begin);
+                    // var ctor = Program.ClientStream.ReadUInt32();
+                    var cliPut = Program.ClientStream.ReadUInt32();
+                    var cliPutWithMsg = Program.ClientStream.ReadUInt32();
                     if (cliPutWithMsg != (currPatternOffset + 0x400C00))
                         continue;
 
@@ -86,11 +77,6 @@ namespace OpcodeBruter.Cmsg
 
             Logger.WriteLine("+---------------+------------+");
             Logger.WriteLine("Dumped {0} CMSG JAM opcodes.", opcodeCount);
-        }
-
-        public void Dispose()
-        {
-            Binary.Close();
         }
     }
 }

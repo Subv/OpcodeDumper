@@ -15,7 +15,7 @@ namespace OpcodeBruter.JamGroups
             get { return 0xFA01C4; }
         }
 
-        public ClientGuild(FileStream wow) : base(wow)
+        public ClientGuild() : base()
         {
         }
     }

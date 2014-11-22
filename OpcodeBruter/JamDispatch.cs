@@ -10,13 +10,11 @@ namespace OpcodeBruter
 {
     public abstract class JamDispatch
     {
-        public FileStream wowStream;
-        public UnmanagedBuffer Disasm;
-
         public List<uint> Offsets = new List<uint>();
         public List<uint> IndirectJumpTable = new List<uint>();
 
         public virtual int StructureOffset { get { return 0; } }
+        // Not actual padding - just two vtable entries nulled.
         public virtual int PaddingSize { get { return 8; } }
         public int CalculateDispatcherFn() { return _dispatcher; }
         public int CalculateCheckerFn()    { return _checker; }
@@ -29,30 +27,28 @@ namespace OpcodeBruter
 
         public JamGroup GetGroup() { return _groupName; }
 
-        public JamDispatch(FileStream wow)
+        public JamDispatch()
         {
-            this.wowStream = wow;
-            Disasm = UnmanagedBuffer.CreateFromFile(wow);
-            var binary = new BinaryReader(wow);
-            binary.BaseStream.Seek(StructureOffset - 0x401400, SeekOrigin.Begin);
+            Program.BaseStream.Seek(StructureOffset - 0x401400, SeekOrigin.Begin);
 
-            var nameOffset = binary.ReadInt32() - 0x400C00;
+            var nameOffset = Program.ClientStream.ReadInt32() - 0x400C00;
 
-            _checker = binary.ReadInt32() - 0x400C00;
-            binary.ReadBytes(PaddingSize);
-            _connIndex = binary.ReadInt32(); // Not the actual function - just skipping by
+            _checker = Program.ClientStream.ReadInt32() - 0x400C00;
+            Program.ClientStream.ReadBytes(PaddingSize + 4);
+            _dispatcher = Program.ClientStream.ReadInt32() - 0x400C00;
+            _connIndex = Program.ClientStream.ReadInt32();
             if (_connIndex > 0)
                 _connIndex -= 0x400C00;
-            _dispatcher = binary.ReadInt32() - 0x400C00;
-            _connIndex = binary.ReadInt32() - 0x400C00;
 
-            binary.BaseStream.Seek(nameOffset, SeekOrigin.Begin);
+            Program.BaseStream.Seek(nameOffset, SeekOrigin.Begin);
 
+            // ReadString fails, and I'm really not sure why.
             var groupName = String.Empty;
-            while (binary.PeekChar() != '\0')
-                groupName += binary.ReadChar();
+            while (Program.ClientStream.PeekChar() != '\0')
+                groupName += Program.ClientStream.ReadChar();
+
             if (!Enum.TryParse(groupName, out _groupName))
-                Console.WriteLine("Found JAM Group {0}, which is not defined in the JamGroup enum!", groupName);
+                Logger.WriteConsoleLine("Found JAM Group {0}, which is not defined in the JamGroup enum!", groupName);
         }
     }
 }

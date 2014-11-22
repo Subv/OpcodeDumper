@@ -10,8 +10,8 @@ namespace OpcodeBruter.JamGroups
 {
     public class ClientLFG : JamDispatch
     {
-        public ClientLFG(FileStream wow)
-            : base(wow)
+        public ClientLFG()
+            : base()
         {
 
         }

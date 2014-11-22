@@ -25,6 +25,11 @@ namespace OpcodeBruter
         {
             Console.WriteLine(str, obj);
         }
+        
+        public static void WriteLine()
+        {
+            WriteLine(String.Empty);
+        }
 
         public static void WriteLine(string str, params object[] obj)
         {

@@ -5,7 +5,12 @@ namespace Bea
     public class BeaEngine
     {
         [DllImport("BeaEngine.dll")]
-        public static extern int Disasm([In, Out, MarshalAs(UnmanagedType.LPStruct)] Disasm disasm);
+        private static extern int Disasm([In, Out, MarshalAs(UnmanagedType.LPStruct)] Disasm disasm);
+
+        public static BeaConstants.SpecialInfo Disassemble(Disasm disasm)
+        {
+            return (BeaConstants.SpecialInfo)Disasm(disasm);
+        }
 
         [DllImport("BeaEngine.dll")]
         private static extern string BeaEngineVersion();

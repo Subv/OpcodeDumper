@@ -17,7 +17,7 @@ namespace OpcodeBruter
         public static bool Debug = false;
 
         [ConfigKey("-no-gh-names", "Controls if names from WPP are to be downloaded.")]
-        public static bool NoGhNames = true;
+        public static bool NoGhNames = false;
         
         [ConfigKey("-no-client", "Controls if CMSG opcodes are to be dumped.")]
         public static bool NoCmsg = true;
@@ -37,7 +37,7 @@ namespace OpcodeBruter
             showHelp = !TryGet<bool>(args, "-debug", ref Debug, false);
             showHelp = !TryGet<bool>(args, "-no-client", ref NoCmsg, false);
             showHelp = !TryGet<bool>(args, "-no-server", ref NoSmsg, false);
-            showHelp = !TryGet<bool>(args, "-no-gh-names", ref NoGhNames, true);
+            showHelp = !TryGet<bool>(args, "-no-gh-names", ref NoGhNames, false);
             showHelp = !TryGet<string>(args, "-of", ref OutputFile, String.Empty);
             showHelp = !TryGet<string>(args, "-e", ref Executable, AppDomain.CurrentDomain.BaseDirectory + "./Wow.exe");
             return showHelp ? ShowHelp() : true;

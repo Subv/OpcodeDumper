@@ -32,6 +32,8 @@ namespace Bea
         public byte BranchTaken;
         public byte BranchNotTaken;
         public REX_Struct REX;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
+        public string alignment;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -77,10 +79,11 @@ namespace Bea
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public class ArgumentType
     {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
         public string ArgMnemonic;
         public Int32 ArgType;
         public Int32 ArgSize;
+        public Int32 ArgPosition;
         public UInt32 AccessMode;
         public MemoryType Memory;
         public UInt32 SegmentReg;

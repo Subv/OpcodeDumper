@@ -51,19 +51,11 @@ namespace OpcodeBruter
         public static string GetOpcodeNameForServer(uint opcode)
         {
             return SMSG.FirstOrDefault(p => p.Value == opcode).Key;
-            foreach (var pair in SMSG)
-                if (pair.Value == opcode)
-                    return pair.Key;
-            return String.Empty;
         }
 
         public static string GetOpcodeNameForClient(uint opcode)
         {
             return CMSG.FirstOrDefault(p => p.Value == opcode).Key;
-            foreach (var pair in CMSG)
-                if (pair.Value == opcode)
-                    return pair.Key;
-            return String.Empty;
         }
 
         public static Dictionary<string, int> CMSG = new Dictionary<string, int>();

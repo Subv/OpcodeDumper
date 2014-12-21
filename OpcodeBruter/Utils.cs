@@ -29,7 +29,7 @@ namespace OpcodeBruter
                     for (byte* hInc = hNext, nInc = N, nEnd = N + Needle.LongLength; Found && nInc < nEnd; Found = *nInc == wildcard || *nInc == *hInc, ++nInc, ++hInc);
                     /*if (Found) { Indexes.Add(i); hNext += Needle.LongLength; }
                     else hNext++;*/
-                    if (Found) Indexes.Add(i);
+                    if (Found) Indexes.Add(i + begin);
                 }
                 return Indexes;
             }

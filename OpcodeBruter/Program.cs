@@ -21,6 +21,9 @@ namespace OpcodeBruter
         public static byte[] ClientBytes { get; private set; }
         public static UnmanagedBuffer Disasm { get; private set; }
 
+        // Used to populate Dispatchers.
+        // First byte is used to avoid multiple matches on Client - tons of false positives there.
+        //! DOUBLECHECK THESE FOR ANY BUILD
         public static byte[][] ClientGroupPatterns = new byte[][] {
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x00 }, // Client
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x43, 0x68, 0x61, 0x74, 0x00 }, // ClientChat
@@ -29,26 +32,13 @@ namespace OpcodeBruter
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x4C, 0x46, 0x47, 0x00 }, // ClientLFG
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x4D, 0x6F, 0x76, 0x65, 0x6D, 0x65, 0x6E, 0x74, 0x00 }, // ClientMovement
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x51, 0x75, 0x65, 0x73, 0x74, 0x00 }, // ClientQuest
-            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x6F, 0x63, 0x69, 0x61, 0x6C, 0x00 }, // ClientSocial
-            new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x70, 0x65, 0x6C, 0x6C, 0x00 } // ClientSpell
+            new byte[] { 0x40, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x6F, 0x63, 0x69, 0x61, 0x6C, 0x00 }, // ClientSocial
+            new byte[] { 0x41, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x70, 0x65, 0x6C, 0x6C, 0x00 } // ClientSpell
         };
 
-        public static void InitializeDictionary(FileStream wow)
-        {
-            Dispatchers[JamGroup.None] = null;
-            Dispatchers[JamGroup.Client] = new JamGroups.Client();
-            Dispatchers[JamGroup.ClientGuild] = new JamGroups.ClientGuild();
-            Dispatchers[JamGroup.ClientGarrison] = new JamGroups.ClientGarrison();
-            Dispatchers[JamGroup.ClientLFG] = new JamGroups.ClientLFG();
-            Dispatchers[JamGroup.ClientChat] = new JamGroups.ClientChat();
-            Dispatchers[JamGroup.ClientMovement] = new JamGroups.ClientMovement();
-            Dispatchers[JamGroup.ClientSocial] = new JamGroups.ClientSocial();
-            Dispatchers[JamGroup.ClientSpell] = new JamGroups.ClientSpell();
-            Dispatchers[JamGroup.ClientQuest] = new JamGroups.ClientQuest();
-        }
-
         static void Main(string[] args)
-        {   
+        {
+            Console.WriteLine(">> Loading configuration options...");
             if (!Config.Load(args))
                 return;
 
@@ -61,16 +51,33 @@ namespace OpcodeBruter
 
             Logger.CreateOutputStream(Config.OutputFile);
 
+            Console.WriteLine(">> Opening Wow client...");
             ClientStream = new BinaryReader(File.OpenRead(Config.Executable));
             if (!BaseStream.CanRead)
                 return;
 
             ClientBytes = File.ReadAllBytes(Config.Executable);
             Disasm = new UnmanagedBuffer(ClientBytes);
-
             Environment = Emulator.Create(BaseStream);
 
-            InitializeDictionary(BaseStream as FileStream);
+
+            Console.WriteLine(">> Discovering JAM groups...");
+            foreach (var pattern in ClientGroupPatterns) // Load jam groups...
+            {
+                var offsets = ClientBytes.FindPattern(pattern, 0xFF);
+                if (offsets.Count == 0)
+                {
+                    Console.WriteLine(@"Could not find group name "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine(@"Found JAM Group "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
+                    var dispatch = new JamDispatch((int)(offsets[0] + 1));
+                    Dispatchers[dispatch.GetGroup()] = dispatch;
+                }
+            }
+
             if (!Config.NoGhNames && !Opcodes.TryPopulate())
                 return;
 

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.IO.Compression;
 using Bea;
 using OpcodeBruter;
-using System.IO.Compression;
 
 namespace x86
 {
@@ -19,6 +19,10 @@ namespace x86
         public List<uint> JumpBacks = new List<uint>();
         private List<uint> MemoryBreakPoints = new List<uint>();
         public PeHeaderReader PeInfo { get; private set; }
+
+        // Used by the debugger
+        public bool Interrupted { get; private set; }
+        public void Interrupt() { Interrupted = true; }
 
         #region Processor
         public Eax Eax = new Eax();
@@ -169,30 +173,32 @@ namespace x86
             }
         }
 
-        public void WriteMemory(uint address, object value)
+        public void WriteMemory(uint address, object newValue)
         {
-            switch (Type.GetTypeCode(value.GetType()))
+            Debugger.TryTrigger(this, BreakpointType.MemoryWrite, new uint[] { address, GetTypeSize(newValue) });
+            switch (Type.GetTypeCode(newValue.GetType()))
             {
                 case TypeCode.Boolean:
                 case TypeCode.Char:
                 case TypeCode.SByte:
                 case TypeCode.Byte:
-                    WriteByteToMemory(address, (byte)value);
+                    WriteByteToMemory(address, (byte)newValue);
                     break;
                 case TypeCode.Int16:
                 case TypeCode.UInt16:
-                    WriteWordToMemory(address, (ushort)value);
+                    WriteWordToMemory(address, (ushort)newValue);
                     break;
                 case TypeCode.Int32:
                 case TypeCode.UInt32:
                 case TypeCode.Single:
-                    WriteDwordToMemory(address, (uint)value);
+                    WriteDwordToMemory(address, (uint)newValue);
                     break;
             }
         }
 
         public uint ReadMemory(uint address, uint size)
         {
+            Debugger.TryTrigger(this, BreakpointType.MemoryRead, new uint[] { address, size });
             switch (size)
             {
                 case 1: return ReadByteFromMemory(address);
@@ -258,6 +264,9 @@ namespace x86
 
         private bool ExecuteASM(Disasm disasm, UnmanagedBuffer buffer, bool followCalls)
         {
+            if (Interrupted)
+                return false;
+
             var entryPoint = buffer.Ptr.ToInt32();
             var disassemblyString = disasm.CompleteInstr;
             // Sanitize the instruction.
@@ -802,29 +811,11 @@ namespace x86
             return false;
         }
 
-        public void Execute(byte[] bytesArray)
-        {
-            UnmanagedBuffer buffer = new UnmanagedBuffer(bytesArray);
-            Disasm disasm = new Disasm();
-            disasm.EIP = buffer.Ptr;
-            var byteTally = 0;
-            while (byteTally < bytesArray.Length)
-            {
-                var result = BeaEngine.Disasm(disasm);
-                if (result == (int)BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
-                    return;
-
-                byteTally += result;
-                var jumped = ExecuteASM(disasm, buffer, false);
-                if (!jumped)
-                    disasm.EIP = new IntPtr(disasm.EIP.ToInt64() + result);
-            }
-        }
-
         public void Reset()
         {
             CallOffsets = new List<uint>();
             JumpBacks = new List<uint>();
+            Debugger.Reset();
 
             Eax = new Eax();
             Ebx = new Ebx();
@@ -836,7 +827,7 @@ namespace x86
             Ebp = new Ebp();
             Eip = 1;
             EFlags = EFlags.ZeroFlag;
-            Esp.Value = 200;
+            Esp.Value = BaseAddress + 400;
         }
 
         public void Execute(int offset, UnmanagedBuffer buffer, bool followCalls = false)
@@ -846,49 +837,52 @@ namespace x86
 
         public void Execute(uint offset, UnmanagedBuffer buffer, bool followCalls = false)
         {
-            Disasm disasm = new Disasm();
-            disasm.EIP = new IntPtr(buffer.Ptr.ToInt64() + offset);
-            var bufferPTR = buffer.Ptr.ToInt64();
-            var distToStart = new List<int>();
-            var oldCallSize = CallOffsets.Count;
-            while (true)
+            try
             {
-                var result = BeaEngine.Disasm(disasm);
-                if (result == (int)BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
-                    return;
+                Esp.Value -= 4; // Assume we are calling from the beginning of a function. return address is on the stack
 
-                // Returns true if jumped or following calls
-                var jumped = ExecuteASM(disasm, buffer, followCalls);
-                if ((disasm.CompleteInstr.Contains("leave") || disasm.CompleteInstr.Contains("ret")) && !jumped)
-                    break;
+                Disasm disasm = new Disasm();
+                disasm.EIP = new IntPtr(buffer.Ptr.ToInt64() + offset); // new IntPtr(buffer.Ptr.ToInt64()/* + offset*/);
+                while (true)
+                {
+                    var result = BeaEngine.Disassemble(disasm);
+                    if (result == BeaConstants.SpecialInfo.UNKNOWN_OPCODE)
+                        return;
 
-                if (!jumped)
-                    disasm.EIP = new IntPtr(disasm.EIP.ToInt64() + result);
+                    // Returns true if jumped or following calls
+                    var jumped = ExecuteASM(disasm, buffer, followCalls);
+                    if ((disasm.CompleteInstr.Contains("leave") || disasm.CompleteInstr.Contains("ret")) && !jumped)
+                        break;
+
+                    Debugger.TryTrigger(this, BreakpointType.InstructionName, disasm.Instruction.Mnemonic);
+
+                    if (!jumped)
+                        disasm.EIP = new IntPtr(disasm.EIP.ToInt64() + (int)result);
+                }
+                for (var i = 0; i < CallOffsets.Count; ++i)
+                    CallOffsets[i] += 0x400C00;
             }
-            for (var i = 0; i < CallOffsets.Count; ++i)
-                CallOffsets[i] += 0x400C00;
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
         #endregion
 
-        public bool HasMemoryBreakpoint(uint offset)
+        public Emulator(uint memoryBaseAddress, uint memorySize = 0x64000000)
         {
-            return MemoryBreakPoints.IndexOf(offset - BaseAddress) != -1;
-        }
+            Interrupted = false;
 
-        // public void SetMemoryBreakpoint(uint offset)
-
-        public Emulator(uint memoryBaseAddress, uint memorySize = 0x06400000)
-        {
             if (uint.MaxValue - memoryBaseAddress > memorySize)
                 BaseAddress = memoryBaseAddress;
             else throw new ArgumentOutOfRangeException();
 
-            if (memorySize > 256 && memorySize <= 0xFFFFFFFF)
+            if (memorySize > 256 && memorySize <= 0x064000000)
             {
                 Memory = new byte[memorySize];
-                Esp.Value = memoryBaseAddress + 200; // Allocate 200 bytes for the stack (we should not need more)
+                Esp.Value = memoryBaseAddress + 400; // Allocate 400 bytes for the stack (we should not need more)
             }
-            else throw new ArgumentOutOfRangeException("Memory size must be between 256 bytes and 4 gigabytes.");
+            else throw new ArgumentOutOfRangeException("Memory size must be between 256 bytes and 64 megabytes.");
         }
 
         public static Emulator Create(Stream file)
@@ -950,27 +944,32 @@ namespace x86
                 return;
             }
 
-            var fieldSize = 0u;
+            var fieldSize = GetTypeSize(value);
+            WriteMemory(Esp - fieldSize, value);
+            Esp.Value -= fieldSize;
+        }
+
+        private uint GetTypeSize(object value)
+        {
             switch (Type.GetTypeCode(value.GetType()))
             {
                 case TypeCode.Boolean:
                 case TypeCode.Char:
                 case TypeCode.SByte:
                 case TypeCode.Byte:
-                    fieldSize = 1;
-                    break;
+                    return 1;
                 case TypeCode.Int16:
                 case TypeCode.UInt16:
-                    fieldSize = 2;
-                    break;
+                    return 2;
                 case TypeCode.Int32:
                 case TypeCode.UInt32:
                 case TypeCode.Single:
-                    fieldSize = 4;
-                    break;
+                default:
+                    return 4;
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
+                    return 8;
             }
-            WriteMemory(Esp - fieldSize, value);
-            Esp.Value -= fieldSize;
         }
     }
 }

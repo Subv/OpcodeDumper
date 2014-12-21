@@ -12,16 +12,6 @@ namespace OpcodeBruter
     /// </summary>
     public class SMSG
     {
-        private static byte[] Pattern = new byte[] {
-            0x55,                             // push    ebp
-            0x8B, 0xEC,                       // mov     ebp, esp
-            0x56,                             // push    esi
-            0x8B, 0xF1,                       // mov     esi, ecx
-            0x8B, 0x4D, 0x08,                 // mov     ecx, [ebp + 8]
-            0x68, 0xFF, 0xFF, 0x00, 0x00,     // push    <opcode>
-            0xE8, 0xFF, 0xFF, 0xFF, 0xFF      // call    CDataStore::PutInt32
-        };
-
         public static void Dump()
         {
             var jamGroupCount = new Dictionary<JamGroup, uint>();
@@ -50,8 +40,6 @@ namespace OpcodeBruter
         
         private static bool DumpOpcode(uint opcode, Dictionary<JamGroup, uint> jamGroupCount)
         {
-            //! NOTE: All the ESP modifications are caused by the fact that calling
-            //! does not push the return address on the stack.
             foreach (var dispatcherPair in Program.Dispatchers)
             {
                 if (dispatcherPair.Key == JamGroup.None)
@@ -71,7 +59,6 @@ namespace OpcodeBruter
 
                 Program.Environment.Reset();
                 Program.Environment.Push(opcode);
-                Program.Environment.Esp.Value -= 4;
                 Program.Environment.Execute(checkerFn, Program.Disasm, false);
                 if (Program.Environment.Eax.Value == 0)
                     continue;
@@ -85,7 +72,6 @@ namespace OpcodeBruter
                     Program.Environment.Push();
                     Program.Environment.Push(opcode);
                     Program.Environment.Push();
-                    Program.Environment.Esp.Value -= 4;
                     Program.Environment.Execute(connectionFn, Program.Disasm, false);
                     if (Program.Environment.Eax.Al == 0)
                     {
@@ -93,7 +79,6 @@ namespace OpcodeBruter
 
                         Program.Environment.Reset();
                         Program.Environment.Push(opcode);
-                        Program.Environment.Esp.Value -= 4;
                         Program.Environment.Execute(requiresInstanceConnectionFn, Program.Disasm, false);
                         connIndex = Program.Environment.Eax.Value;
                     }
@@ -109,7 +94,6 @@ namespace OpcodeBruter
                 Program.Environment.Push((ushort)opcode);
                 Program.Environment.Push();
                 Program.Environment.Push();
-                Program.Environment.Esp.Value -= 4;
                 Program.Environment.Execute(calleeOffset, Program.Disasm, false);
                 var jamData = Program.Environment.GetCalledOffsets();
                 if (jamData.Length < 2)

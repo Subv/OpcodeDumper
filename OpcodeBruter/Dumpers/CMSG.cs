@@ -9,6 +9,7 @@ namespace OpcodeBruter
 {
     public class CMSG
     {
+        //! DOUBLECHECK THIS FOR ANY BUILD
         private static byte[] Pattern = new byte[] {
             0x55,                             // push    ebp
             0x8B, 0xEC,                       // mov     ebp, esp
@@ -21,6 +22,13 @@ namespace OpcodeBruter
 
         public static void Dump(uint specificOpcode = 0xBADD)
         {
+            if (specificOpcode != 0xBADD)
+            {
+                Pattern[11] = (byte)((specificOpcode & 0xFF00) >> 8);
+                Pattern[10] = (byte)(specificOpcode & 0x00FF);
+                Console.WriteLine(BitConverter.ToString(Pattern).Replace('-', ' '));
+            }
+
             var patternOffsets = Program.ClientBytes.FindPattern(Pattern, 0xFF);
             var callIndex = (uint)(Array.IndexOf<byte>(Pattern, 0xE8) + 0x400C00);
             var opcodeCount = 0;
@@ -38,15 +46,13 @@ namespace OpcodeBruter
                 var bytes = Program.ClientStream.ReadBytes(Pattern.Length);
 
                 var callOffset = BitConverter.ToInt32(bytes, 15);
-                var subCall = (uint)(currPatternOffset + callIndex) + BitConverter.ToUInt32(bytes, 15) + 5;
 
-                if (subCall != 0x40FCE6) // CDataStore::PutInt32
-                    continue;
+                // Check isn't needed - use it if IDA shows some false positives.
+                // var subCall = (uint)(currPatternOffset + callIndex) + callOffset + 5;
+                // if (subCall != 0x0040FB81) // CDataStore::PutInt32
+                //     continue;
 
-                var opcodeValue = BitConverter.ToUInt16(bytes, 10);
-                if (specificOpcode != 0xBADD && specificOpcode != opcodeValue)
-                    continue;
-
+                var opcodeValue = specificOpcode == 0xBADD ? BitConverter.ToUInt16(bytes, 10) : specificOpcode;
                 var ptBytes = BitConverter.GetBytes(currPatternOffset + 0x400C00);
                 var vtablePattern = new byte[] {
                     0xFF, 0xFF, 0xFF, 0xFF, // Ctor
@@ -59,7 +65,6 @@ namespace OpcodeBruter
                 foreach (var vtOffset in vtOffsets)
                 {
                     Program.BaseStream.Seek(vtOffset + 4, SeekOrigin.Begin);
-                    // var ctor = Program.ClientStream.ReadUInt32();
                     var cliPut = Program.ClientStream.ReadUInt32();
                     var cliPutWithMsg = Program.ClientStream.ReadUInt32();
                     if (cliPutWithMsg != (currPatternOffset + 0x400C00))

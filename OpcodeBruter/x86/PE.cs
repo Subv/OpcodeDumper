@@ -269,6 +269,16 @@ namespace x86
         }
         #endregion Properties
 
+        public uint GetPhysicalAddress(string sectionName)
+        {
+            return SectionHeaders.First(i => i.NameString.Contains(sectionName)).PhysicalAddress;
+        }
+
+        public uint GetPhysicalAddressEnd(string sectionName)
+        {
+            return SectionHeaders.Where(i => i.NameString.Contains(sectionName)).Select(o => o.SizeOfRawData + o.PhysicalAddress).First();
+        }
+
         private void ParseFileHeader(IMAGE_FILE_HEADER fileHeader)
         {
             LogStructure(fileHeader);

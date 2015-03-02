@@ -18,10 +18,10 @@ namespace OpcodeBruter
             var opcodesCount = 0;
 
             Logger.WriteLine();
-            Logger.WriteLine("Dumping SMSG opcodes...");
-            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
-            Logger.WriteLine("|     Opcode    |  JAM Parser | Jam Handler |     Group Name     | ConnIdx |");
-            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
+            Logger.WriteLine(">> Dumping SMSG opcodes...");
+            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+---------+");
+            Logger.WriteLine("|     Opcode    |  JAM Parser | Jam Handler |     Group Name     | ConnIdx | Skipped |");
+            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+---------+");
 
             if (Config.SpecificOpcodeValue == 0xBADD)
             {
@@ -32,70 +32,67 @@ namespace OpcodeBruter
             else if (DumpOpcode(Config.SpecificOpcodeValue, jamGroupCount))
                 ++opcodesCount;
 
-            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+");
+            Logger.WriteLine("+---------------+-------------+-------------+--------------------+---------+---------+");
             Logger.WriteLine(@"Dumped {0} SMSG JAM opcodes.", opcodesCount);
-            for (var i = 0; i < jamGroupCount.Count; ++i)
-                Logger.WriteLine("Dumped {0} SMSG {1} opcodes.", jamGroupCount.Values.ElementAt(i), jamGroupCount.Keys.ElementAt(i).ToString());
+            foreach (var pair in jamGroupCount)
+                Logger.WriteLine("Dumped {0} SMSG {1} opcodes.", pair.Value, pair.Key);
+            Logger.WriteLine();
+            Logger.WriteLine("ConnIdx: The connexion index for the opcode (HasFlag_FromInstanceRealm).");
+            Logger.WriteLine("Skipped: Is the opcode skipped if flooded? (HasFlag_IsSkippedForExcessCount).");
         }
         
         private static bool DumpOpcode(uint opcode, Dictionary<JamGroup, uint> jamGroupCount)
         {
-            foreach (var dispatcherPair in Program.Dispatchers)
+            foreach (var dispatcher in Program.Dispatchers)
             {
-                if (dispatcherPair.Key == JamGroup.None)
+                if (dispatcher.GetGroup() == JamGroup.None || dispatcher.CalculateCheckerFn() == 0 || dispatcher.StructureOffset <= 0)
                     continue;
 
-                var dispatcher = dispatcherPair.Value;
-                if (dispatcher.CalculateCheckerFn() == 0)
-                    continue;
-
-                int offset = dispatcher.StructureOffset;
-                if (offset <= 0)
-                    continue;
-
-                int checkerFn    = dispatcher.CalculateCheckerFn();
                 int connectionFn = dispatcher.CalculateConnectionFn();
-                int dispatcherFn = dispatcher.CalculateDispatcherFn();
 
-                Program.Environment.Reset();
-                Program.Environment.Push(opcode);
-                Program.Environment.Execute(checkerFn, Program.Disasm, false);
-                if (Program.Environment.Eax.Value == 0)
+                Program.Env.Reset();
+                Program.Env.Push(opcode);
+                Program.Env.Execute(dispatcher.CalculateCheckerFn(), Program.Disasm, false);
+                if (Program.Env.Eax.Value == 0)
                     continue;
 
                 var connIndex = 0u;
                 if (connectionFn != 0)
                 {
-                    Program.Environment.Reset();
-                    Program.Environment.Push();
-                    Program.Environment.Push();
-                    Program.Environment.Push();
-                    Program.Environment.Push(opcode);
-                    Program.Environment.Push();
-                    Program.Environment.Execute(connectionFn, Program.Disasm, false);
-                    if (Program.Environment.Eax.Al == 0)
+                    Program.Env.Reset();
+                    Program.Env.Push();
+                    Program.Env.Push();
+                    Program.Env.Push();
+                    Program.Env.Push(opcode);
+                    Program.Env.Push();
+                    Program.Env.Execute(connectionFn, Program.Disasm, false);
+                    if (Program.Env.Eax.Al == 0)
                     {
-                        var requiresInstanceConnectionFn = Program.Environment.GetCalledOffsets()[0] - 0x400C00;
+                        var requiresInstanceConnectionFn = Program.Env.GetCalledOffsets()[0] - 0x400C00;
 
-                        Program.Environment.Reset();
-                        Program.Environment.Push(opcode);
-                        Program.Environment.Execute(requiresInstanceConnectionFn, Program.Disasm, false);
-                        connIndex = Program.Environment.Eax.Value;
+                        Program.Env.Reset();
+                        Program.Env.Push(opcode);
+                        Program.Env.Execute(requiresInstanceConnectionFn, Program.Disasm, false);
+                        connIndex = Program.Env.Eax.Value;
                     }
                 }
 
-                Program.Environment.Reset();
-                Program.Environment.Execute(dispatcherFn, Program.Disasm, false);
-                var calleeOffset = Program.Environment.GetCalledOffsets()[0] - 0x400C00;
+                if (!dispatcher.DispatcherUpdated)
+                {
+                    // No need to setup the stack, the control flow always executes E8.
+                    Program.Env.Reset();
+                    Program.Env.Execute(dispatcher.CalculateDispatcherFn(), Program.Disasm, false);
+                    dispatcher.UpdateDispatcherFn((int)(Program.Env.GetCalledOffsets()[0] - 0x400C00));
+                }
 
-                Program.Environment.Reset();
-                Program.Environment.Push();
-                Program.Environment.Push((ushort)0);
-                Program.Environment.Push((ushort)opcode);
-                Program.Environment.Push();
-                Program.Environment.Push();
-                Program.Environment.Execute(calleeOffset, Program.Disasm, false);
-                var jamData = Program.Environment.GetCalledOffsets();
+                Program.Env.Reset();
+                Program.Env.Push();
+                Program.Env.Push((ushort)0);
+                Program.Env.Push((ushort)opcode);
+                Program.Env.Push();
+                Program.Env.Push();
+                Program.Env.Execute(dispatcher.CalculateDispatcherFn(), Program.Disasm, false);
+                var jamData = Program.Env.GetCalledOffsets();
                 if (jamData.Length < 2)
                     continue;
 
@@ -112,17 +109,31 @@ namespace OpcodeBruter
                         break;
                 }
 
+                var isSkippedForExcessCount = false;
+                Program.Env.Reset();
+                Program.Env.Push(opcode);
+                Program.Env.Execute(dispatcher.CalculateSkippedFn(), Program.Disasm, false);
+                if (Program.Env.GetCalledOffsets().Length != 0)
+                {
+                    var skippedData = Program.Env.GetCalledOffsets()[0] - 0x400C00;
+                    Program.Env.Reset();
+                    Program.Env.Push(opcode);
+                    Program.Env.Execute(skippedData, Program.Disasm, false);
+                    isSkippedForExcessCount = Program.Env.Eax.Al == 1;
+                }
+
                 if (!jamGroupCount.ContainsKey(dispatcher.GetGroup()))
                     jamGroupCount.Add(dispatcher.GetGroup(), 0);
                 jamGroupCount[dispatcher.GetGroup()] += 1;
 
-                Logger.WriteLine("| {4} (0x{0:X4}) |  0x{1:X8} |  0x{2:X8} | {3} | {6} | {5}",
+                Logger.WriteLine("| {0} (0x{1:X4}) |  0x{2:X8} |  0x{3:X8} | {4} | {5} | {6} | {7}",
+                                 opcode.ToString().PadLeft(4),
                                  opcode,
                                  handler, parser,
                                  dispatcher.GetGroup().ToString().PadLeft(18),
-                                 opcode.ToString().PadLeft(4),
-                                 Opcodes.GetOpcodeNameForServer(opcode),
-                                 connIndex.ToString().PadLeft(7));
+                                 connIndex.ToString().PadLeft(7),
+                                 (isSkippedForExcessCount ? "Yes" : "No").PadLeft(7),
+                                 Opcodes.GetOpcodeNameForServer(opcode));
                 return true;
             }
             return false;

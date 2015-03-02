@@ -12,10 +12,10 @@ namespace OpcodeBruter
 {
     class Program
     {
-        public static Dictionary<JamGroup, JamDispatch> Dispatchers = new Dictionary<JamGroup, JamDispatch>();
+        public static List<JamDispatch> Dispatchers = new List<JamDispatch>();
         public static Dictionary<uint, uint> OpcodeToFileOffset = new Dictionary<uint, uint>();
 
-        public static Emulator Environment { get; private set; }
+        public static Emulator Env { get; private set; }
         public static BinaryReader ClientStream { get; private set; }
         public static Stream BaseStream { get { return ClientStream.BaseStream; } }
         public static byte[] ClientBytes { get; private set; }
@@ -33,7 +33,7 @@ namespace OpcodeBruter
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x4D, 0x6F, 0x76, 0x65, 0x6D, 0x65, 0x6E, 0x74, 0x00 }, // ClientMovement
             new byte[] { 0x00, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x51, 0x75, 0x65, 0x73, 0x74, 0x00 }, // ClientQuest
             new byte[] { 0x40, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x6F, 0x63, 0x69, 0x61, 0x6C, 0x00 }, // ClientSocial
-            new byte[] { 0x41, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x70, 0x65, 0x6C, 0x6C, 0x00 } // ClientSpell
+            new byte[] { 0x40, 0x43, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x53, 0x70, 0x65, 0x6C, 0x6C, 0x00 } // ClientSpell
         };
 
         static void Main(string[] args)
@@ -58,23 +58,24 @@ namespace OpcodeBruter
 
             ClientBytes = File.ReadAllBytes(Config.Executable);
             Disasm = new UnmanagedBuffer(ClientBytes);
-            Environment = Emulator.Create(BaseStream);
+            Env = Emulator.Create(BaseStream);
 
-
-            Console.WriteLine(">> Discovering JAM groups...");
-            foreach (var pattern in ClientGroupPatterns) // Load jam groups...
+            if (!Config.NoSmsg)
             {
-                var offsets = ClientBytes.FindPattern(pattern, 0xFF);
-                if (offsets.Count == 0)
+                Console.WriteLine(">> Discovering JAM groups...");
+                foreach (var pattern in ClientGroupPatterns) // Load jam groups...
                 {
-                    Console.WriteLine(@"Could not find group name "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine(@"Found JAM Group "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
-                    var dispatch = new JamDispatch((int)(offsets[0] + 1));
-                    Dispatchers[dispatch.GetGroup()] = dispatch;
+                    var offsets = ClientBytes.FindPattern(pattern, 0xFF);
+                    if (offsets.Count == 0)
+                    {
+                        Console.WriteLine(@"Could not find group name "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine(@"Found JAM Group "" {0}""", System.Text.Encoding.ASCII.GetString(pattern.Skip(1).ToArray()));
+                        Dispatchers.Add(new JamDispatch((int)(offsets[0] + 1)));
+                    }
                 }
             }
 
